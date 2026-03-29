@@ -8,12 +8,40 @@ use url::Url;
 
 static NEXT_SCHEMA_ID: AtomicU64 = AtomicU64::new(1);
 
+#[allow(dead_code)]
 pub(crate) fn run_store_test<TestFn>(test: TestFn)
 where
     TestFn: FnOnce(Box<dyn Fn() -> PostgresStore>),
 {
-    let base_database_url = database_url();
+    let store_database_url = create_store_database_url();
+    test(Box::new(move || {
+        PostgresStore::connect(&store_database_url).expect("postgres store should connect")
+    }));
+}
 
+#[allow(dead_code)]
+pub(crate) fn create_store() -> PostgresStore {
+    let store_database_url = create_store_database_url();
+    PostgresStore::connect(&store_database_url).expect("postgres store should connect")
+}
+
+fn database_url() -> String {
+    env::var("DATABASE_URL")
+        .expect("DATABASE_URL must be set to run factstore-postgres integration tests")
+}
+
+fn unique_schema_name() -> String {
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("time should move forward")
+        .as_nanos();
+    let next_id = NEXT_SCHEMA_ID.fetch_add(1, Ordering::Relaxed);
+
+    format!("factstore_test_{timestamp}_{next_id}")
+}
+
+fn create_store_database_url() -> String {
+    let base_database_url = database_url();
     let schema_name = unique_schema_name();
     let admin_runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
@@ -31,25 +59,7 @@ where
             .expect("test schema should be created");
     });
 
-    let store_database_url = schema_database_url(&base_database_url, &schema_name);
-    test(Box::new(move || {
-        PostgresStore::connect(&store_database_url).expect("postgres store should connect")
-    }));
-}
-
-fn database_url() -> String {
-    env::var("DATABASE_URL")
-        .expect("DATABASE_URL must be set to run factstore-postgres integration tests")
-}
-
-fn unique_schema_name() -> String {
-    let timestamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .expect("time should move forward")
-        .as_nanos();
-    let next_id = NEXT_SCHEMA_ID.fetch_add(1, Ordering::Relaxed);
-
-    format!("factstore_test_{timestamp}_{next_id}")
+    schema_database_url(&base_database_url, &schema_name)
 }
 
 fn schema_database_url(base_database_url: &str, schema_name: &str) -> String {

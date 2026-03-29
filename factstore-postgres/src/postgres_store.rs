@@ -1,3 +1,10 @@
+use std::io;
+use std::sync::{
+    Mutex,
+    mpsc::{self, Receiver, Sender, SyncSender},
+};
+use std::thread::{self, JoinHandle};
+
 use factstore::{
     AppendResult, EventQuery, EventRecord, EventStore, EventStoreError, NewEvent, QueryResult,
 };
@@ -5,98 +12,60 @@ use sqlx::{
     PgPool, Postgres, QueryBuilder, Row, Transaction,
     postgres::{PgPoolOptions, PgRow},
 };
-use tokio::runtime::{Builder, Runtime};
+use tokio::runtime::Builder;
 
 use crate::query_sql::push_query_conditions;
 
 pub struct PostgresStore {
-    runtime: Runtime,
-    pool: PgPool,
+    worker_sender: Mutex<Sender<WorkerCommand>>,
+    worker_thread: Mutex<Option<JoinHandle<()>>>,
+}
+
+enum WorkerCommand {
+    Query {
+        event_query: EventQuery,
+        reply: Sender<Result<QueryResult, EventStoreError>>,
+    },
+    Append {
+        new_events: Vec<NewEvent>,
+        reply: Sender<Result<AppendResult, EventStoreError>>,
+    },
+    AppendIf {
+        new_events: Vec<NewEvent>,
+        context_query: EventQuery,
+        expected_context_version: Option<u64>,
+        reply: Sender<Result<AppendResult, EventStoreError>>,
+    },
+    Shutdown,
 }
 
 impl PostgresStore {
     pub fn connect(connection_string: &str) -> Result<Self, sqlx::Error> {
-        let runtime = Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .expect("tokio runtime should build");
-        let pool = runtime.block_on(async {
-            PgPoolOptions::new()
-                .max_connections(1)
-                .connect(connection_string)
-                .await
-        })?;
+        let (worker_sender, worker_receiver) = mpsc::channel();
+        let (ready_sender, ready_receiver) = mpsc::sync_channel(1);
+        let connection_string = connection_string.to_owned();
 
-        runtime.block_on(initialize_schema(&pool))?;
+        let worker_thread = thread::Builder::new()
+            .name("factstore-postgres-worker".to_owned())
+            .spawn(move || run_worker_thread(connection_string, worker_receiver, ready_sender))
+            .map_err(sqlx_io_error)?;
 
-        Ok(Self { runtime, pool })
-    }
-
-    fn query_inner(&self, event_query: &EventQuery) -> Result<QueryResult, sqlx::Error> {
-        self.runtime.block_on(async {
-            let current_context_version = current_context_version(&self.pool, event_query).await?;
-
-            let mut query_builder: QueryBuilder<'_, Postgres> =
-                QueryBuilder::new("SELECT sequence_number, event_type, payload FROM events");
-            push_query_conditions(&mut query_builder, event_query, true);
-            query_builder.push(" ORDER BY sequence_number ASC");
-
-            let event_records = query_builder
-                .build()
-                .fetch_all(&self.pool)
-                .await?
-                .into_iter()
-                .map(event_record_from_row)
-                .collect::<Vec<_>>();
-
-            let last_returned_sequence_number = event_records
-                .last()
-                .map(|event_record| event_record.sequence_number);
-
-            Ok(QueryResult {
-                event_records,
-                last_returned_sequence_number,
-                current_context_version,
-            })
-        })
-    }
-
-    fn append_inner(&self, new_events: Vec<NewEvent>) -> Result<AppendResult, sqlx::Error> {
-        self.runtime.block_on(async {
-            let mut transaction = self.pool.begin().await?;
-            lock_events_table(&mut transaction).await?;
-            let append_result = append_records(&mut transaction, new_events).await?;
-            transaction.commit().await?;
-            Ok(append_result)
-        })
-    }
-
-    fn append_if_inner(
-        &self,
-        new_events: Vec<NewEvent>,
-        context_query: &EventQuery,
-        expected_context_version: Option<u64>,
-    ) -> Result<Result<AppendResult, EventStoreError>, sqlx::Error> {
-        self.runtime.block_on(async {
-            let mut transaction = self.pool.begin().await?;
-            lock_events_table(&mut transaction).await?;
-
-            let actual_context_version =
-                current_context_version_in_transaction(&mut transaction, context_query).await?;
-
-            if actual_context_version != expected_context_version {
-                transaction.rollback().await?;
-                return Ok(Err(EventStoreError::ConditionalAppendConflict {
-                    expected: expected_context_version,
-                    actual: actual_context_version,
-                }));
+        match ready_receiver.recv() {
+            Ok(Ok(())) => Ok(Self {
+                worker_sender: Mutex::new(worker_sender),
+                worker_thread: Mutex::new(Some(worker_thread)),
+            }),
+            Ok(Err(error)) => {
+                let _ = worker_thread.join();
+                Err(error)
             }
-
-            let append_result = append_records(&mut transaction, new_events).await?;
-            transaction.commit().await?;
-
-            Ok(Ok(append_result))
-        })
+            Err(error) => {
+                let _ = worker_thread.join();
+                Err(sqlx_io_error(io::Error::other(format!(
+                    "postgres worker startup channel failed: {error}"
+                ))))
+            }
+        }
     }
 
     fn backend_failure(error: sqlx::Error) -> EventStoreError {
@@ -104,11 +73,87 @@ impl PostgresStore {
             message: error.to_string(),
         }
     }
+
+    fn worker_failure(message: impl Into<String>) -> EventStoreError {
+        EventStoreError::BackendFailure {
+            message: message.into(),
+        }
+    }
+
+    fn send_command(&self, worker_command: WorkerCommand) -> Result<(), EventStoreError> {
+        let worker_sender = self
+            .worker_sender
+            .lock()
+            .map_err(|_| Self::worker_failure("postgres worker sender lock poisoned"))?;
+
+        worker_sender
+            .send(worker_command)
+            .map_err(|error| Self::worker_failure(format!("postgres worker stopped: {error}")))
+    }
+
+    fn run_query(&self, event_query: &EventQuery) -> Result<QueryResult, EventStoreError> {
+        let (reply_sender, reply_receiver) = mpsc::channel();
+        self.send_command(WorkerCommand::Query {
+            event_query: event_query.clone(),
+            reply: reply_sender,
+        })?;
+
+        reply_receiver.recv().map_err(|error| {
+            Self::worker_failure(format!("postgres worker query reply failed: {error}"))
+        })?
+    }
+
+    fn run_append(&self, new_events: Vec<NewEvent>) -> Result<AppendResult, EventStoreError> {
+        let (reply_sender, reply_receiver) = mpsc::channel();
+        self.send_command(WorkerCommand::Append {
+            new_events,
+            reply: reply_sender,
+        })?;
+
+        reply_receiver.recv().map_err(|error| {
+            Self::worker_failure(format!("postgres worker append reply failed: {error}"))
+        })?
+    }
+
+    fn run_append_if(
+        &self,
+        new_events: Vec<NewEvent>,
+        context_query: &EventQuery,
+        expected_context_version: Option<u64>,
+    ) -> Result<AppendResult, EventStoreError> {
+        let (reply_sender, reply_receiver) = mpsc::channel();
+        self.send_command(WorkerCommand::AppendIf {
+            new_events,
+            context_query: context_query.clone(),
+            expected_context_version,
+            reply: reply_sender,
+        })?;
+
+        reply_receiver.recv().map_err(|error| {
+            Self::worker_failure(format!(
+                "postgres worker conditional append reply failed: {error}"
+            ))
+        })?
+    }
+}
+
+impl Drop for PostgresStore {
+    fn drop(&mut self) {
+        if let Ok(worker_sender) = self.worker_sender.lock() {
+            let _ = worker_sender.send(WorkerCommand::Shutdown);
+        }
+
+        if let Ok(mut worker_thread) = self.worker_thread.lock() {
+            if let Some(worker_thread) = worker_thread.take() {
+                let _ = worker_thread.join();
+            }
+        }
+    }
 }
 
 impl EventStore for PostgresStore {
     fn query(&self, event_query: &EventQuery) -> Result<QueryResult, EventStoreError> {
-        self.query_inner(event_query).map_err(Self::backend_failure)
+        self.run_query(event_query)
     }
 
     fn append(&self, new_events: Vec<NewEvent>) -> Result<AppendResult, EventStoreError> {
@@ -116,7 +161,7 @@ impl EventStore for PostgresStore {
             return Err(EventStoreError::EmptyAppend);
         }
 
-        self.append_inner(new_events).map_err(Self::backend_failure)
+        self.run_append(new_events)
     }
 
     fn append_if(
@@ -129,9 +174,152 @@ impl EventStore for PostgresStore {
             return Err(EventStoreError::EmptyAppend);
         }
 
-        self.append_if_inner(new_events, context_query, expected_context_version)
-            .map_err(Self::backend_failure)?
+        self.run_append_if(new_events, context_query, expected_context_version)
     }
+}
+
+fn run_worker_thread(
+    connection_string: String,
+    worker_receiver: Receiver<WorkerCommand>,
+    ready_sender: SyncSender<Result<(), sqlx::Error>>,
+) {
+    let runtime = match Builder::new_current_thread().enable_all().build() {
+        Ok(runtime) => runtime,
+        Err(error) => {
+            let _ = ready_sender.send(Err(sqlx_io_error(io::Error::other(format!(
+                "tokio runtime should build: {error}"
+            )))));
+            return;
+        }
+    };
+
+    let pool = match runtime.block_on(async {
+        PgPoolOptions::new()
+            .max_connections(1)
+            .connect(&connection_string)
+            .await
+    }) {
+        Ok(pool) => pool,
+        Err(error) => {
+            let _ = ready_sender.send(Err(error));
+            return;
+        }
+    };
+
+    if let Err(error) = runtime.block_on(initialize_schema(&pool)) {
+        let _ = ready_sender.send(Err(error));
+        return;
+    }
+
+    if ready_sender.send(Ok(())).is_err() {
+        return;
+    }
+
+    while let Ok(worker_command) = worker_receiver.recv() {
+        match worker_command {
+            WorkerCommand::Query { event_query, reply } => {
+                let result = runtime
+                    .block_on(query_with_pool(&pool, &event_query))
+                    .map_err(PostgresStore::backend_failure);
+                let _ = reply.send(result);
+            }
+            WorkerCommand::Append { new_events, reply } => {
+                let result = runtime
+                    .block_on(append_with_pool(&pool, new_events))
+                    .map_err(PostgresStore::backend_failure);
+                let _ = reply.send(result);
+            }
+            WorkerCommand::AppendIf {
+                new_events,
+                context_query,
+                expected_context_version,
+                reply,
+            } => {
+                let result = runtime
+                    .block_on(append_if_with_pool(
+                        &pool,
+                        new_events,
+                        &context_query,
+                        expected_context_version,
+                    ))
+                    .map_err(PostgresStore::backend_failure)
+                    .and_then(|result| result);
+                let _ = reply.send(result);
+            }
+            WorkerCommand::Shutdown => break,
+        }
+    }
+}
+
+fn sqlx_io_error(error: io::Error) -> sqlx::Error {
+    sqlx::Error::Io(error.into())
+}
+
+async fn query_with_pool(
+    pool: &PgPool,
+    event_query: &EventQuery,
+) -> Result<QueryResult, sqlx::Error> {
+    let current_context_version = current_context_version(pool, event_query).await?;
+
+    let mut query_builder: QueryBuilder<'_, Postgres> =
+        QueryBuilder::new("SELECT sequence_number, event_type, payload FROM events");
+    push_query_conditions(&mut query_builder, event_query, true);
+    query_builder.push(" ORDER BY sequence_number ASC");
+
+    let event_records = query_builder
+        .build()
+        .fetch_all(pool)
+        .await?
+        .into_iter()
+        .map(event_record_from_row)
+        .collect::<Vec<_>>();
+
+    let last_returned_sequence_number = event_records
+        .last()
+        .map(|event_record| event_record.sequence_number);
+
+    Ok(QueryResult {
+        event_records,
+        last_returned_sequence_number,
+        current_context_version,
+    })
+}
+
+async fn append_with_pool(
+    pool: &PgPool,
+    new_events: Vec<NewEvent>,
+) -> Result<AppendResult, sqlx::Error> {
+    let mut transaction = pool.begin().await?;
+    lock_events_table(&mut transaction).await?;
+    let append_result = append_records(&mut transaction, new_events).await?;
+    transaction.commit().await?;
+    Ok(append_result)
+}
+
+async fn append_if_with_pool(
+    pool: &PgPool,
+    new_events: Vec<NewEvent>,
+    context_query: &EventQuery,
+    expected_context_version: Option<u64>,
+) -> Result<Result<AppendResult, EventStoreError>, sqlx::Error> {
+    let mut transaction = pool.begin().await?;
+    lock_events_table(&mut transaction).await?;
+
+    let actual_context_version =
+        current_context_version_in_transaction(&mut transaction, context_query).await?;
+
+    if actual_context_version != expected_context_version {
+        transaction.rollback().await?;
+        return Ok(Err(EventStoreError::ConditionalAppendConflict {
+            expected: expected_context_version,
+            actual: actual_context_version,
+        }));
+    }
+
+    let append_result = append_records(&mut transaction, new_events).await?;
+    transaction.commit().await?;
+
+    Ok(Ok(append_result))
 }
 
 async fn initialize_schema(pool: &PgPool) -> Result<(), sqlx::Error> {
