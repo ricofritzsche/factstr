@@ -2,6 +2,14 @@
 name = "factstore"
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.85"
+description = "Shared runtime contract for factstore, a fact-based Rust event store with query-defined consistency."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/ricofritzsche/factstore.git"
+homepage = "https://factstore.ricofritzsche.me"
+readme = "../README.md"
+keywords = ["eventstore", "eventsourcing", "facts", "consistency", "cqrs"]
+categories = ["database-implementations"]
 
 [lib]
 path = "src/lib.rs"

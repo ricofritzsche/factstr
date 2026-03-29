@@ -38,6 +38,13 @@ Workspace members:
 - `factstore-memory`
 - `factstore-postgres`
 
+Crate roles:
+
+- `factstore`: shared runtime contract crate
+- `factstore-memory`: publishable in-memory runtime store
+- `factstore-postgres`: publishable PostgreSQL runtime store
+- `factstore-conformance`: internal reusable test-support crate, not intended for publishing now
+
 ## What Is Implemented
 
 The current shared contract supports:
@@ -265,6 +272,68 @@ Run the full workspace test suite with postgres enabled:
 DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres cargo test
 ```
 
+## Using From Another Repository
+
+The current intended consumption path is a git dependency.
+
+Use the shared contract only:
+
+```toml
+[dependencies]
+factstore = { git = "https://github.com/ricofritzsche/factstore.git" }
+```
+
+Use the in-memory store:
+
+```toml
+[dependencies]
+factstore = { git = "https://github.com/ricofritzsche/factstore.git" }
+factstore-memory = { git = "https://github.com/ricofritzsche/factstore.git" }
+```
+
+Use the PostgreSQL store:
+
+```toml
+[dependencies]
+factstore = { git = "https://github.com/ricofritzsche/factstore.git" }
+factstore-postgres = { git = "https://github.com/ricofritzsche/factstore.git" }
+```
+
+## Publish Readiness
+
+This workspace is being prepared for future publishing, but this repository task does not publish any crate.
+
+Current publishability decision:
+
+- `factstore`: intended to be publishable
+- `factstore-memory`: intended to be publishable
+- `factstore-postgres`: intended to be publishable
+- `factstore-conformance`: kept internal for now with `publish = false`
+
+## Packaging Verification
+
+Safe packaging checks:
+
+```bash
+cargo publish --dry-run -p factstore
+cargo publish --dry-run -p factstore-memory
+cargo publish --dry-run -p factstore-postgres
+```
+
+For the current interdependent workspace, the most accurate first verification is:
+
+```bash
+cargo publish --dry-run --workspace --exclude factstore-conformance
+```
+
+Inspect package contents:
+
+```bash
+cargo package --list -p factstore
+cargo package --list -p factstore-memory
+cargo package --list -p factstore-postgres
+```
+
 ## PostgreSQL Test Setup
 
 `factstore-postgres` integration tests require `DATABASE_URL`.
@@ -305,4 +374,7 @@ Not implemented now:
 
 ## License
 
-TBD
+Licensed under either of:
+
+- MIT license ([LICENSE-MIT](LICENSE-MIT))
+- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE))

@@ -2,12 +2,20 @@
 name = "factstore-postgres"
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.85"
+description = "PostgreSQL factstore implementation using SQLx and the shared factstore runtime contract."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/ricofritzsche/factstore.git"
+homepage = "https://factstore.ricofritzsche.me"
+readme = "../README.md"
+keywords = ["eventstore", "eventsourcing", "postgres", "sqlx", "facts"]
+categories = ["database-implementations"]
 
 [lib]
 path = "src/lib.rs"
 
 [dependencies]
-factstore = { path = "../factstore" }
+factstore = { version = "0.1.0", path = "../factstore" }
 serde_json = "1"
 sqlx = { version = "0.8", features = ["postgres", "runtime-tokio-rustls", "json"] }
 tokio = { version = "1", features = ["rt"] }

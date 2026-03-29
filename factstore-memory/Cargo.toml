@@ -2,12 +2,20 @@
 name = "factstore-memory"
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.85"
+description = "In-memory factstore implementation that preserves the shared append, query, and conditional-append contract."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/ricofritzsche/factstore.git"
+homepage = "https://factstore.ricofritzsche.me"
+readme = "../README.md"
+keywords = ["eventstore", "eventsourcing", "memory", "facts", "testing"]
+categories = ["database-implementations"]
 
 [lib]
 path = "src/lib.rs"
 
 [dependencies]
-factstore = { path = "../factstore" }
+factstore = { version = "0.1.0", path = "../factstore" }
 serde_json = "1"
 
 [dev-dependencies]
