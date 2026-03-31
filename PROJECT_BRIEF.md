@@ -4,7 +4,7 @@
 
 Build a Rust event store focused on **facts, context, and stable behavior**.
 
-The project preserves the useful semantics of the existing TypeScript eventstore while replacing its runtime model with a smaller, more explicit, and more durable Rust implementation.
+The project preserves the useful semantics of the existing TypeScript eventstore while replacing its runtime model with a more explicit, more direct, and more durable Rust implementation.
 
 This is **not** a direct port.
 
@@ -50,7 +50,7 @@ The system should make important meanings explicit. In particular, it should dis
 * the last sequence returned by a read
 * the current version of the full conflict context
 
-### Small durable core
+### Direct durable core
 
 The engine should begin as a compact, understandable core rather than a distributed system. Single-node strength comes before network complexity.
 
@@ -241,7 +241,7 @@ Add stronger operational features:
 
 The project is successful when it provides:
 
-1. a small Rust core that is easy to reason about
+1. a Rust core that is explicit, direct, and easy to reason about
 2. one shared semantic contract across store implementations
 3. stable context-scoped optimistic locking
 4. a default embedded persistent option without external infrastructure
@@ -256,4 +256,4 @@ This project is for developers and teams who want:
 * explicit conflict boundaries
 * predictable append behavior
 * embedded or database-backed deployment choices
-* a smaller, more direct model than conventional enterprise event store designs
+* a more direct model than conventional enterprise event store designs
