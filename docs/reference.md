@@ -55,7 +55,7 @@ This makes the committed sequence range explicit without overloading it with con
 
 ## `HandleEvents`
 
-Callback type for live subscriptions.
+Callback type for projection updates and other live subscriptions.
 
 - receives one delivered committed batch as `Vec<EventRecord>`
 - returns `Result<(), SubscriptionHandlerError>`
@@ -74,6 +74,7 @@ Active live subscription registration.
 
 - has a stable id
 - `unsubscribe()` stops future delivery for that subscriber
+- a batch already snapshotted for a committed append may still be delivered
 
 ## `EventStore`
 
@@ -89,6 +90,7 @@ Memory and PostgreSQL must preserve the same observable contract behavior.
 
 - `subscribe_all(handle)` delivers all future committed batches to the handler
 - `subscribe_to(&EventQuery, handle)` delivers only future committed facts that match that query, preserving original committed order inside each delivered batch
+- the common use is a feature-local read model that updates from those committed batches
 
 ## `EventStoreError`
 

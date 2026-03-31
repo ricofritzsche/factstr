@@ -24,27 +24,26 @@ What it proves:
   - `last_returned_sequence_number`
   - `current_context_version`
 
-## Live Subscriptions
+## Account Projection
 
 Source:
 
-- [`examples/live-subscriptions/src/main.rs`](https://github.com/ricofritzsche/factstore/blob/main/examples/live-subscriptions/src/main.rs)
+- [`examples/account-projection/src/main.rs`](https://github.com/ricofritzsche/factstore/blob/main/examples/account-projection/src/main.rs)
 
 Run it:
 
 ```bash
-cargo run --manifest-path examples/live-subscriptions/Cargo.toml
+cargo run --manifest-path examples/account-projection/Cargo.toml
 ```
 
 What it proves:
 
-- create a feature-local query model
-- subscribe before append
-- subscribe with `subscribe_to(&EventQuery, handle)`
-- append one committed batch where only some events match
-- let the handler receive the next matching committed batch
-- update the feature-local query model from that delivered batch
+- define a feature-local read model
+- subscribe with `subscribe_to(&EventQuery, handle)` for only the relevant facts
+- append one committed batch where some facts match and others do not
+- update the read model from the one delivered committed batch
+- keep unrelated facts out of that projection by contract
 
-This is the current projection-style usage: the feature slice subscribes to relevant future facts and does not receive unrelated facts for that subscription.
+This is the main feature-slice story in the current repository: the feature owns its own query model, receives only relevant future facts, and updates that model from committed batches.
 
 These examples stay on the memory store because it is the fastest way to understand the current contract without database setup.

@@ -1,5 +1,5 @@
 [package]
-name = "factstore-example-live-subscriptions"
+name = "factstore-example-account-projection"
 version = "0.1.0"
 edition = "2024"
 publish = false

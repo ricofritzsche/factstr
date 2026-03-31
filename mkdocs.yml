@@ -11,6 +11,6 @@ nav:
   - Getting Started: getting-started.md
   - Examples: examples.md
   - Core Concepts: core-concepts.md
-  - Live Subscriptions: live-subscriptions.md
+  - Projection Updates: live-subscriptions.md
   - Reference: reference.md
   - Stores: stores.md

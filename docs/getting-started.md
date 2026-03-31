@@ -35,7 +35,7 @@ This is the simplest way to see the current semantic contract in action:
 - append
 - query
 - conditional append
-- live subscriptions
+- projection updates through live subscriptions
 
 If you want the first direct code path after that, run the basic memory example:
 
@@ -45,13 +45,13 @@ cargo run --manifest-path examples/basic-memory/Cargo.toml
 
 See [Examples](examples.md) for the source and what it proves.
 
-For the subscription-oriented path, run the live subscription example next:
+For the common feature-slice path, run the account projection example next:
 
 ```bash
-cargo run --manifest-path examples/live-subscriptions/Cargo.toml
+cargo run --manifest-path examples/account-projection/Cargo.toml
 ```
 
-That example shows a feature slice subscribing to the facts relevant to its own query model and updating that model inside the subscription handler.
+That example shows a feature slice owning a read model, subscribing only to the facts relevant to that model, and updating it from committed batches.
 
 ## Run The PostgreSQL Store Tests
 
@@ -69,7 +69,8 @@ After these commands, you should know:
 
 - the repository already has a shared runtime contract
 - memory and PostgreSQL preserve the same observable append/query/conditional-append behavior
-- live subscriptions are implemented as part of the current contract
+- projection-style updates are implemented as part of the current contract
 - a feature slice can subscribe to relevant future facts with `subscribe_to(&EventQuery, handle)`
+- live subscriptions are the mechanism behind those projection updates
 - the current scope is still intentionally narrow and focused on core behavior
-- there is a direct runnable memory-store example you can build on next
+- there are two direct runnable memory-store examples you can build on next

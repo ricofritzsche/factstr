@@ -1,6 +1,6 @@
-# Live Subscriptions
+# Projection Updates
 
-FACTSTR currently implements first-class live subscriptions in the shared contract.
+FACTSTR currently implements first-class live subscriptions in the shared contract. The main use is projection updates: a feature slice subscribes to the facts relevant to its query model and updates that model from committed batches.
 
 ## Current Behavior
 
@@ -16,8 +16,6 @@ FACTSTR currently implements first-class live subscriptions in the shared contra
 - multiple subscribers can observe the same committed batches
 - dropping a subscription stops future delivery for that subscriber
 
-This is the projection-oriented use case supported now: a feature slice can subscribe to the facts relevant to its own query model and update that model from the matching committed batches it receives.
-
 ## Subscription Methods
 
 - `subscribe_all(handle)` registers a handler for every future committed batch
@@ -32,18 +30,21 @@ Each delivered item is a committed batch:
 
 This keeps the delivered shape aligned with the append shape instead of splitting one committed append into arbitrary fragments.
 
-For the smallest concrete code path, see the live subscription example in [Examples](examples.md).
+For the strongest concrete code path, see the account projection example in [Examples](examples.md).
 
 ## Projection Use Case
 
 A self-contained feature slice can:
 
-- define an `EventQuery` for the facts it cares about
+- define a read model struct it owns locally
+- define an `EventQuery` for the facts that should update that model
 - call `subscribe_to(&EventQuery, handle)` once
 - receive only matching future committed facts by contract
-- update its own query model inside the handler from each delivered batch
+- update its own query model inside the handler from each delivered committed batch
 
 This means the feature slice does not need ad-hoc manual filtering after delivery. Unrelated facts are excluded by the subscription contract itself.
+
+This is why subscriptions are not the end goal here. They are the post-commit mechanism a feature slice uses to keep its own read model current.
 
 ## Current Limitations
 

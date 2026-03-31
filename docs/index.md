@@ -1,6 +1,6 @@
 # FACTSTR
 
-One Rust contract for facts, queries, and live subscriptions.
+One Rust contract for facts, queries, and projection updates.
 
 ## Current status
 
@@ -11,7 +11,7 @@ Rust
 Memory · PostgreSQL
 
 **Implemented now**  
-Append · Query · Conditional append · Live subscriptions
+Append · Query · Conditional append · Projection updates
 
 **Documentation**  
 GitHub Pages docs
@@ -25,6 +25,6 @@ Apache-2.0 / MIT
 - [Getting Started](getting-started.md)
 - [Examples](examples.md)
 - [Core Concepts](core-concepts.md)
-- [Live Subscriptions](live-subscriptions.md)
+- [Projection Updates](live-subscriptions.md)
 - [Reference](reference.md)
 - [Stores](stores.md)
