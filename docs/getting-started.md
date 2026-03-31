@@ -37,6 +37,14 @@ This is the simplest way to see the current semantic contract in action:
 - conditional append
 - live subscriptions
 
+If you want the first direct code path after that, run the basic memory example:
+
+```bash
+cargo run --manifest-path examples/basic-memory/Cargo.toml
+```
+
+See [Examples](examples.md) for the source and what it proves.
+
 ## Run The PostgreSQL Store Tests
 
 Set `DATABASE_URL` to a PostgreSQL database where the configured user can create schemas, then run:
@@ -55,3 +63,4 @@ After these commands, you should know:
 - memory and PostgreSQL preserve the same observable append/query/conditional-append behavior
 - live subscriptions are implemented as part of the current contract
 - the current scope is still intentionally narrow and focused on core behavior
+- there is a direct runnable memory-store example you can build on next

@@ -1,0 +1,12 @@
+[package]
+name = "factstore-example-live-subscriptions"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+factstore = { path = "../../factstore" }
+factstore-memory = { path = "../../factstore-memory" }
+serde_json = "1"

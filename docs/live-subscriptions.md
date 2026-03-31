@@ -19,6 +19,8 @@ Each delivered item is a committed batch:
 
 This keeps the delivered shape aligned with the append shape instead of splitting one committed append into arbitrary fragments.
 
+For the smallest concrete code path, see the live subscription example in [Examples](examples.md).
+
 ## Current Limitations
 
 The current implementation does not provide:

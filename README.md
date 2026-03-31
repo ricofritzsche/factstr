@@ -5,6 +5,7 @@
 ## Documentation
 
 - local docs entry page: [`docs/index.md`](docs/index.md)
+- examples and contract reference: [`docs/examples.md`](docs/examples.md), [`docs/reference.md`](docs/reference.md)
 - GitHub Pages deployment is configured through Actions in [`.github/workflows/docs.yml`](.github/workflows/docs.yml)
 
 This repository currently contains:
