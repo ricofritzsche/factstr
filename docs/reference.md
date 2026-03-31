@@ -57,20 +57,20 @@ This makes the committed sequence range explicit without overloading it with con
 
 Live-only subscription handle for future committed batches.
 
-- `recv()` blocks until the next committed batch is available
-- `try_recv()` checks without blocking
+- `next_batch()` blocks until the next delivered committed batch is available or the subscription closes
+- `try_next_batch()` checks without blocking and returns a batch, `Empty`, or `Closed`
 - each delivered item is `Vec<EventRecord>`
 - dropping the handle ends future delivery for that subscriber
 
 ## `LiveSubscriptionRecvError`
 
-Blocking receive error for `LiveSubscription::recv()`.
+Blocking receive error for `LiveSubscription::next_batch()`.
 
 - currently indicates the subscription is closed
 
 ## `TryLiveSubscriptionRecvError`
 
-Non-blocking receive error for `LiveSubscription::try_recv()`.
+Non-blocking receive error for `LiveSubscription::try_next_batch()`.
 
 - `Empty` means no committed batch is ready
 - `Closed` means the subscription is closed
@@ -82,9 +82,15 @@ Shared runtime contract across store implementations.
 - `query`
 - `append`
 - `append_if`
-- `subscribe`
+- `subscribe_all`
+- `subscribe_to`
+
+`subscribe()` may still exist as a compatibility alias for `subscribe_all()`, but the preferred public subscription methods are `subscribe_all()` and `subscribe_to(&EventQuery)`.
 
 Memory and PostgreSQL must preserve the same observable contract behavior.
+
+- `subscribe_all()` delivers all future committed batches
+- `subscribe_to(&EventQuery)` delivers only future committed facts that match that query, preserving original committed order inside each delivered batch
 
 ## `EventStoreError`
 

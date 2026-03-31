@@ -19,13 +19,17 @@ impl LiveSubscription {
         Self { receiver }
     }
 
-    pub fn recv(&self) -> Result<Vec<EventRecord>, LiveSubscriptionRecvError> {
+    /// Blocks until the next committed batch is available or the subscription
+    /// is closed.
+    pub fn next_batch(&self) -> Result<Vec<EventRecord>, LiveSubscriptionRecvError> {
         self.receiver
             .recv()
             .map_err(|_| LiveSubscriptionRecvError::Closed)
     }
 
-    pub fn try_recv(&self) -> Result<Vec<EventRecord>, TryLiveSubscriptionRecvError> {
+    /// Returns immediately with the next committed batch, `Empty` if no batch
+    /// is ready, or `Closed` if the subscription is closed.
+    pub fn try_next_batch(&self) -> Result<Vec<EventRecord>, TryLiveSubscriptionRecvError> {
         self.receiver.try_recv().map_err(|error| match error {
             TryRecvError::Empty => TryLiveSubscriptionRecvError::Empty,
             TryRecvError::Disconnected => TryLiveSubscriptionRecvError::Closed,

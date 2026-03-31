@@ -136,7 +136,14 @@ impl EventStore for MemoryStore {
         Ok(committed_append.append_result)
     }
 
-    fn subscribe(&self) -> Result<LiveSubscription, EventStoreError> {
-        Ok(self.subscription_registry.borrow_mut().subscribe())
+    fn subscribe_all(&self) -> Result<LiveSubscription, EventStoreError> {
+        Ok(self.subscription_registry.borrow_mut().subscribe_all())
+    }
+
+    fn subscribe_to(&self, event_query: &EventQuery) -> Result<LiveSubscription, EventStoreError> {
+        Ok(self
+            .subscription_registry
+            .borrow_mut()
+            .subscribe_to(Some(event_query.clone())))
     }
 }

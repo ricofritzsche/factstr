@@ -45,6 +45,14 @@ cargo run --manifest-path examples/basic-memory/Cargo.toml
 
 See [Examples](examples.md) for the source and what it proves.
 
+For the subscription-oriented path, run the live subscription example next:
+
+```bash
+cargo run --manifest-path examples/live-subscriptions/Cargo.toml
+```
+
+That example shows a feature slice subscribing to the facts relevant to its own query model and updating that model from the next matching committed batch.
+
 ## Run The PostgreSQL Store Tests
 
 Set `DATABASE_URL` to a PostgreSQL database where the configured user can create schemas, then run:
@@ -62,5 +70,6 @@ After these commands, you should know:
 - the repository already has a shared runtime contract
 - memory and PostgreSQL preserve the same observable append/query/conditional-append behavior
 - live subscriptions are implemented as part of the current contract
+- a feature slice can subscribe to relevant future facts with `subscribe_to(&EventQuery)`
 - the current scope is still intentionally narrow and focused on core behavior
 - there is a direct runnable memory-store example you can build on next

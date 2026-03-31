@@ -40,3 +40,52 @@ fn subscription_delivery_preserves_the_committed_batch_shape() {
         store_conformance::subscription_delivery_preserves_the_committed_batch_shape,
     );
 }
+
+#[test]
+fn filtered_subscription_with_event_type_receives_only_matching_future_events() {
+    support::run_store_test(
+        store_conformance::filtered_subscription_with_event_type_receives_only_matching_future_events,
+    );
+}
+
+#[test]
+fn filtered_subscription_with_payload_predicate_receives_only_matching_future_events() {
+    support::run_store_test(
+        store_conformance::filtered_subscription_with_payload_predicate_receives_only_matching_future_events,
+    );
+}
+
+#[test]
+fn filtered_subscription_non_matching_commit_produces_no_delivery() {
+    support::run_store_test(
+        store_conformance::filtered_subscription_non_matching_commit_produces_no_delivery,
+    );
+}
+
+#[test]
+fn filtered_subscription_mixed_committed_batch_yields_one_filtered_batch() {
+    support::run_store_test(
+        store_conformance::filtered_subscription_mixed_committed_batch_yields_one_filtered_batch,
+    );
+}
+
+#[test]
+fn filtered_subscription_preserves_event_order_inside_delivered_batch() {
+    support::run_store_test(
+        store_conformance::filtered_subscription_preserves_event_order_inside_delivered_batch,
+    );
+}
+
+#[test]
+fn append_if_conflict_emits_no_filtered_subscription_batch() {
+    support::run_store_test(
+        store_conformance::append_if_conflict_emits_no_filtered_subscription_batch,
+    );
+}
+
+#[test]
+fn differently_filtered_subscribers_observe_the_same_commit_differently() {
+    support::run_store_test(
+        store_conformance::differently_filtered_subscribers_observe_the_same_commit_differently,
+    );
+}

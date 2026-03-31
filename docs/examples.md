@@ -38,9 +38,13 @@ cargo run --manifest-path examples/live-subscriptions/Cargo.toml
 
 What it proves:
 
-- subscribe before an append
-- append one committed batch after subscription starts
-- receive that committed batch through `LiveSubscription`
-- observe that delivery preserves the committed batch shape
+- create a feature-local query model
+- subscribe before append
+- subscribe with `subscribe_to(&EventQuery)`
+- append one committed batch where only some events match
+- receive the next matching committed batch through `next_batch()`
+- update the feature-local query model from that delivered batch
+
+This is the current projection-style usage: the feature slice subscribes to relevant future facts and does not receive unrelated facts for that subscription.
 
 These examples stay on the memory store because it is the fastest way to understand the current contract without database setup.

@@ -1,16 +1,30 @@
 use std::sync::mpsc::{self, Sender};
 
-use factstore::{EventRecord, LiveSubscription};
+use factstore::{EventQuery, EventRecord, LiveSubscription};
+
+use crate::query_match::matches_query;
 
 #[derive(Default)]
 pub(crate) struct SubscriptionRegistry {
-    subscribers: Vec<Sender<Vec<EventRecord>>>,
+    subscribers: Vec<Subscriber>,
+}
+
+struct Subscriber {
+    event_query: Option<EventQuery>,
+    sender: Sender<Vec<EventRecord>>,
 }
 
 impl SubscriptionRegistry {
-    pub(crate) fn subscribe(&mut self) -> LiveSubscription {
+    pub(crate) fn subscribe_all(&mut self) -> LiveSubscription {
+        self.subscribe_to(None)
+    }
+
+    pub(crate) fn subscribe_to(&mut self, event_query: Option<EventQuery>) -> LiveSubscription {
         let (sender, receiver) = mpsc::channel();
-        self.subscribers.push(sender);
+        self.subscribers.push(Subscriber {
+            event_query,
+            sender,
+        });
         LiveSubscription::new(receiver)
     }
 
@@ -19,8 +33,21 @@ impl SubscriptionRegistry {
             return;
         }
 
-        let committed_batch = committed_batch.to_vec();
-        self.subscribers
-            .retain(|subscriber| subscriber.send(committed_batch.clone()).is_ok());
+        self.subscribers.retain(|subscriber| {
+            let delivered_batch = match &subscriber.event_query {
+                None => committed_batch.to_vec(),
+                Some(event_query) => committed_batch
+                    .iter()
+                    .filter(|event_record| matches_query(event_query, event_record))
+                    .cloned()
+                    .collect(),
+            };
+
+            if delivered_batch.is_empty() {
+                return true;
+            }
+
+            subscriber.sender.send(delivered_batch).is_ok()
+        });
     }
 }

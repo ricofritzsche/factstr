@@ -57,7 +57,7 @@ The current shared contract supports:
 - append of one or more events
 - query
 - conditional append with typed conflict failure
-- live subscriptions for future committed batches
+- live subscriptions for future committed batches, including filtered subscriptions via `EventQuery`
 - event-type filtering
 - payload-predicate filtering
 - explicit separation of:
@@ -114,8 +114,11 @@ These are the load-bearing behaviors implemented today.
 ### Live Subscriptions
 
 - subscriptions are live only and do not replay history
+- `subscribe_all()` observes all future committed batches
+- `subscribe_to(&EventQuery)` observes only future committed facts that match that query
 - notifications happen only after a successful commit
 - each committed append batch is delivered as one batch
+- mixed committed batches are delivered as one filtered batch when matches exist
 - delivery order follows committed global sequence order
 - failed conditional append delivers nothing
 - multiple subscribers can observe the same committed batches

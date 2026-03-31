@@ -28,7 +28,11 @@ enum WorkerCommand {
         event_query: EventQuery,
         reply: Sender<Result<QueryResult, EventStoreError>>,
     },
-    Subscribe {
+    SubscribeAll {
+        reply: Sender<LiveSubscription>,
+    },
+    SubscribeTo {
+        event_query: EventQuery,
         reply: Sender<LiveSubscription>,
     },
     Append {
@@ -114,9 +118,24 @@ impl PostgresStore {
         })?
     }
 
-    fn run_subscribe(&self) -> Result<LiveSubscription, EventStoreError> {
+    fn run_subscribe_all(&self) -> Result<LiveSubscription, EventStoreError> {
         let (reply_sender, reply_receiver) = mpsc::channel();
-        self.send_command(WorkerCommand::Subscribe {
+        self.send_command(WorkerCommand::SubscribeAll {
+            reply: reply_sender,
+        })?;
+
+        reply_receiver.recv().map_err(|error| {
+            Self::worker_failure(format!("postgres worker subscribe reply failed: {error}"))
+        })
+    }
+
+    fn run_subscribe_to(
+        &self,
+        event_query: &EventQuery,
+    ) -> Result<LiveSubscription, EventStoreError> {
+        let (reply_sender, reply_receiver) = mpsc::channel();
+        self.send_command(WorkerCommand::SubscribeTo {
+            event_query: event_query.clone(),
             reply: reply_sender,
         })?;
 
@@ -199,8 +218,12 @@ impl EventStore for PostgresStore {
         self.run_append_if(new_events, context_query, expected_context_version)
     }
 
-    fn subscribe(&self) -> Result<LiveSubscription, EventStoreError> {
-        self.run_subscribe()
+    fn subscribe_all(&self) -> Result<LiveSubscription, EventStoreError> {
+        self.run_subscribe_all()
+    }
+
+    fn subscribe_to(&self, event_query: &EventQuery) -> Result<LiveSubscription, EventStoreError> {
+        self.run_subscribe_to(event_query)
     }
 }
 
@@ -250,8 +273,11 @@ fn run_worker_thread(
                     .map_err(PostgresStore::backend_failure);
                 let _ = reply.send(result);
             }
-            WorkerCommand::Subscribe { reply } => {
-                let _ = reply.send(subscription_registry.subscribe());
+            WorkerCommand::SubscribeAll { reply } => {
+                let _ = reply.send(subscription_registry.subscribe_all());
+            }
+            WorkerCommand::SubscribeTo { event_query, reply } => {
+                let _ = reply.send(subscription_registry.subscribe_to(Some(event_query)));
             }
             WorkerCommand::Append { new_events, reply } => {
                 let result = runtime

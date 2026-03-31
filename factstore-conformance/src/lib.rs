@@ -57,7 +57,7 @@ where
     F: Fn() -> S,
 {
     let store = create_store();
-    let subscription = store.subscribe().expect("subscribe should succeed");
+    let subscription = store.subscribe_all().expect("subscribe_all should succeed");
 
     store
         .append(vec![
@@ -67,7 +67,7 @@ where
         .expect("append should succeed");
 
     let committed_batch = subscription
-        .recv()
+        .next_batch()
         .expect("subscription should receive a batch");
     assert_eq!(committed_batch.len(), 2);
     assert_eq!(committed_batch[0].sequence_number, 1);
@@ -88,10 +88,10 @@ where
         )])
         .expect("append should succeed");
 
-    let subscription = store.subscribe().expect("subscribe should succeed");
+    let subscription = store.subscribe_all().expect("subscribe_all should succeed");
 
     assert_eq!(
-        subscription.try_recv(),
+        subscription.try_next_batch(),
         Err(TryLiveSubscriptionRecvError::Empty)
     );
 }
@@ -102,8 +102,12 @@ where
     F: Fn() -> S,
 {
     let store = create_store();
-    let first_subscription = store.subscribe().expect("first subscribe should succeed");
-    let second_subscription = store.subscribe().expect("second subscribe should succeed");
+    let first_subscription = store
+        .subscribe_all()
+        .expect("first subscribe_all should succeed");
+    let second_subscription = store
+        .subscribe_all()
+        .expect("second subscribe_all should succeed");
 
     store
         .append(vec![new_event(
@@ -113,10 +117,10 @@ where
         .expect("append should succeed");
 
     let first_batch = first_subscription
-        .recv()
+        .next_batch()
         .expect("first subscription should receive a batch");
     let second_batch = second_subscription
-        .recv()
+        .next_batch()
         .expect("second subscription should receive a batch");
 
     assert_eq!(first_batch, second_batch);
@@ -130,7 +134,7 @@ where
     F: Fn() -> S,
 {
     let store = create_store();
-    let subscription = store.subscribe().expect("subscribe should succeed");
+    let subscription = store.subscribe_all().expect("subscribe_all should succeed");
 
     store
         .append(vec![new_event(
@@ -145,8 +149,12 @@ where
         )])
         .expect("second append should succeed");
 
-    let first_batch = subscription.recv().expect("first batch should arrive");
-    let second_batch = subscription.recv().expect("second batch should arrive");
+    let first_batch = subscription
+        .next_batch()
+        .expect("first batch should arrive");
+    let second_batch = subscription
+        .next_batch()
+        .expect("second batch should arrive");
 
     assert_eq!(first_batch[0].sequence_number, 1);
     assert_eq!(second_batch[0].sequence_number, 2);
@@ -166,7 +174,7 @@ where
         )])
         .expect("append should succeed");
 
-    let subscription = store.subscribe().expect("subscribe should succeed");
+    let subscription = store.subscribe_all().expect("subscribe_all should succeed");
     let context_query = EventQuery::all().with_filters([
         EventFilter::default().with_payload_predicates([json!({ "accountId": "a1" })])
     ]);
@@ -187,7 +195,7 @@ where
         }
     );
     assert_eq!(
-        subscription.try_recv(),
+        subscription.try_next_batch(),
         Err(TryLiveSubscriptionRecvError::Empty)
     );
 }
@@ -198,8 +206,8 @@ where
     F: Fn() -> S,
 {
     let store = create_store();
-    let dropped_subscription = store.subscribe().expect("subscribe should succeed");
-    let active_subscription = store.subscribe().expect("subscribe should succeed");
+    let dropped_subscription = store.subscribe_all().expect("subscribe_all should succeed");
+    let active_subscription = store.subscribe_all().expect("subscribe_all should succeed");
 
     drop(dropped_subscription);
 
@@ -214,7 +222,7 @@ where
     assert_eq!(append_result.last_sequence_number, 1);
 
     let committed_batch = active_subscription
-        .recv()
+        .next_batch()
         .expect("active subscription should still receive a batch");
     assert_eq!(committed_batch.len(), 1);
     assert_eq!(committed_batch[0].sequence_number, 1);
@@ -226,7 +234,7 @@ where
     F: Fn() -> S,
 {
     let store = create_store();
-    let subscription = store.subscribe().expect("subscribe should succeed");
+    let subscription = store.subscribe_all().expect("subscribe_all should succeed");
 
     store
         .append(vec![
@@ -236,12 +244,250 @@ where
         .expect("append should succeed");
 
     let committed_batch = subscription
-        .recv()
+        .next_batch()
         .expect("subscription should receive a batch");
 
     assert_eq!(committed_batch.len(), 2);
     assert_eq!(committed_batch[0].sequence_number, 1);
     assert_eq!(committed_batch[1].sequence_number, 2);
+}
+
+pub fn filtered_subscription_with_event_type_receives_only_matching_future_events<S, F>(
+    create_store: F,
+) where
+    S: EventStore,
+    F: Fn() -> S,
+{
+    let store = create_store();
+    let subscription = store
+        .subscribe_to(&EventQuery::for_event_types(["account-opened"]))
+        .expect("subscribe_to should succeed");
+
+    store
+        .append(vec![
+            new_event("account-opened", json!({ "accountId": "a1" })),
+            new_event("account-credited", json!({ "accountId": "a1" })),
+            new_event("account-opened", json!({ "accountId": "a2" })),
+        ])
+        .expect("append should succeed");
+
+    let committed_batch = subscription
+        .next_batch()
+        .expect("filtered subscription should receive a batch");
+
+    assert_eq!(committed_batch.len(), 2);
+    assert_eq!(committed_batch[0].sequence_number, 1);
+    assert_eq!(committed_batch[1].sequence_number, 3);
+    assert!(
+        committed_batch
+            .iter()
+            .all(|event_record| event_record.event_type == "account-opened")
+    );
+}
+
+pub fn filtered_subscription_with_payload_predicate_receives_only_matching_future_events<S, F>(
+    create_store: F,
+) where
+    S: EventStore,
+    F: Fn() -> S,
+{
+    let store = create_store();
+    let subscription = store
+        .subscribe_to(&EventQuery::all().with_filters([
+            EventFilter::default().with_payload_predicates([json!({ "accountId": "a1" })]),
+        ]))
+        .expect("subscribe_to should succeed");
+
+    store
+        .append(vec![
+            new_event("account-opened", json!({ "accountId": "a1" })),
+            new_event("account-opened", json!({ "accountId": "a2" })),
+            new_event("account-renamed", json!({ "accountId": "a1" })),
+        ])
+        .expect("append should succeed");
+
+    let committed_batch = subscription
+        .next_batch()
+        .expect("filtered subscription should receive a batch");
+
+    assert_eq!(committed_batch.len(), 2);
+    assert_eq!(committed_batch[0].sequence_number, 1);
+    assert_eq!(committed_batch[1].sequence_number, 3);
+}
+
+pub fn filtered_subscription_non_matching_commit_produces_no_delivery<S, F>(create_store: F)
+where
+    S: EventStore,
+    F: Fn() -> S,
+{
+    let store = create_store();
+    let subscription = store
+        .subscribe_to(&EventQuery::for_event_types(["account-opened"]))
+        .expect("subscribe_to should succeed");
+
+    store
+        .append(vec![new_event(
+            "account-credited",
+            json!({ "accountId": "a1" }),
+        )])
+        .expect("append should succeed");
+
+    assert_eq!(
+        subscription.try_next_batch(),
+        Err(TryLiveSubscriptionRecvError::Empty)
+    );
+}
+
+pub fn filtered_subscription_mixed_committed_batch_yields_one_filtered_batch<S, F>(create_store: F)
+where
+    S: EventStore,
+    F: Fn() -> S,
+{
+    let store = create_store();
+    let subscription = store
+        .subscribe_to(&EventQuery::for_event_types(["account-opened"]))
+        .expect("subscribe_to should succeed");
+
+    store
+        .append(vec![
+            new_event("account-opened", json!({ "accountId": "a1" })),
+            new_event("account-credited", json!({ "accountId": "a1" })),
+            new_event("account-opened", json!({ "accountId": "a2" })),
+        ])
+        .expect("append should succeed");
+
+    let committed_batch = subscription
+        .next_batch()
+        .expect("filtered subscription should receive a batch");
+
+    assert_eq!(committed_batch.len(), 2);
+    assert_eq!(committed_batch[0].sequence_number, 1);
+    assert_eq!(committed_batch[1].sequence_number, 3);
+}
+
+pub fn filtered_subscription_preserves_event_order_inside_delivered_batch<S, F>(create_store: F)
+where
+    S: EventStore,
+    F: Fn() -> S,
+{
+    let store = create_store();
+    let subscription = store
+        .subscribe_to(&EventQuery::all().with_filters([
+            EventFilter::default().with_payload_predicates([json!({ "accountId": "a1" })]),
+        ]))
+        .expect("subscribe_to should succeed");
+
+    store
+        .append(vec![
+            new_event("account-opened", json!({ "accountId": "a1" })),
+            new_event("account-opened", json!({ "accountId": "a2" })),
+            new_event("account-renamed", json!({ "accountId": "a1" })),
+            new_event("account-closed", json!({ "accountId": "a1" })),
+        ])
+        .expect("append should succeed");
+
+    let committed_batch = subscription
+        .next_batch()
+        .expect("filtered subscription should receive a batch");
+
+    assert_eq!(committed_batch.len(), 3);
+    assert_eq!(
+        committed_batch
+            .iter()
+            .map(|event_record| event_record.sequence_number)
+            .collect::<Vec<_>>(),
+        vec![1, 3, 4]
+    );
+}
+
+pub fn append_if_conflict_emits_no_filtered_subscription_batch<S, F>(create_store: F)
+where
+    S: EventStore,
+    F: Fn() -> S,
+{
+    let store = create_store();
+
+    store
+        .append(vec![new_event(
+            "account-opened",
+            json!({ "accountId": "a1" }),
+        )])
+        .expect("append should succeed");
+
+    let subscription = store
+        .subscribe_to(&EventQuery::all().with_filters([
+            EventFilter::default().with_payload_predicates([json!({ "accountId": "a1" })]),
+        ]))
+        .expect("subscribe_to should succeed");
+    let context_query = EventQuery::all().with_filters([
+        EventFilter::default().with_payload_predicates([json!({ "accountId": "a1" })])
+    ]);
+
+    let error = store
+        .append_if(
+            vec![new_event("account-credited", json!({ "accountId": "a1" }))],
+            &context_query,
+            None,
+        )
+        .expect_err("conditional append should fail");
+
+    assert_eq!(
+        error,
+        EventStoreError::ConditionalAppendConflict {
+            expected: None,
+            actual: Some(1),
+        }
+    );
+    assert_eq!(
+        subscription.try_next_batch(),
+        Err(TryLiveSubscriptionRecvError::Empty)
+    );
+}
+
+pub fn differently_filtered_subscribers_observe_the_same_commit_differently<S, F>(create_store: F)
+where
+    S: EventStore,
+    F: Fn() -> S,
+{
+    let store = create_store();
+    let event_type_subscription = store
+        .subscribe_to(&EventQuery::for_event_types(["account-opened"]))
+        .expect("subscribe_to should succeed");
+    let payload_subscription = store
+        .subscribe_to(&EventQuery::all().with_filters([
+            EventFilter::default().with_payload_predicates([json!({ "accountId": "a2" })]),
+        ]))
+        .expect("subscribe_to should succeed");
+
+    store
+        .append(vec![
+            new_event("account-opened", json!({ "accountId": "a1" })),
+            new_event("account-credited", json!({ "accountId": "a2" })),
+            new_event("account-opened", json!({ "accountId": "a2" })),
+        ])
+        .expect("append should succeed");
+
+    let event_type_batch = event_type_subscription
+        .next_batch()
+        .expect("event-type subscription should receive a batch");
+    let payload_batch = payload_subscription
+        .next_batch()
+        .expect("payload subscription should receive a batch");
+
+    assert_eq!(
+        event_type_batch
+            .iter()
+            .map(|event_record| event_record.sequence_number)
+            .collect::<Vec<_>>(),
+        vec![1, 3]
+    );
+    assert_eq!(
+        payload_batch
+            .iter()
+            .map(|event_record| event_record.sequence_number)
+            .collect::<Vec<_>>(),
+        vec![2, 3]
+    );
 }
 
 pub fn query_returns_events_in_ascending_order<S, F>(create_store: F)

@@ -40,7 +40,11 @@ impl Error for EventStoreError {}
 /// - under the current Rust contract, failed appends also must not consume
 ///   sequence numbers that later successful commits would observe
 /// - live subscriptions observe only batches committed after subscription becomes active
-/// - each successful committed append is delivered as one committed batch in commit order
+/// - `subscribe_all` delivers each successful committed append as one committed
+///   batch in commit order
+/// - `subscribe_to` uses `EventQuery` matching semantics to deliver only the
+///   matching facts from each future committed batch, preserving their original
+///   committed order inside one filtered delivered batch
 /// - failed conditional appends deliver nothing
 /// - slow or disconnected subscribers must not weaken append correctness
 pub trait EventStore {
@@ -55,5 +59,11 @@ pub trait EventStore {
         expected_context_version: Option<u64>,
     ) -> Result<AppendResult, EventStoreError>;
 
-    fn subscribe(&self) -> Result<LiveSubscription, EventStoreError>;
+    fn subscribe_all(&self) -> Result<LiveSubscription, EventStoreError>;
+
+    fn subscribe_to(&self, event_query: &EventQuery) -> Result<LiveSubscription, EventStoreError>;
+
+    fn subscribe(&self) -> Result<LiveSubscription, EventStoreError> {
+        self.subscribe_all()
+    }
 }
