@@ -2,6 +2,11 @@
 
 [FACTSTR](https://factstore.ricofritzsche.me) (pronounced: factstore) is a Rust event store built around facts, query-defined consistency context, and multiple store implementations behind one shared contract.
 
+## Documentation
+
+- local docs entry page: [`docs/index.md`](docs/index.md)
+- GitHub Pages deployment is configured through Actions in [`.github/workflows/docs.yml`](.github/workflows/docs.yml)
+
 This repository currently contains:
 
 - a shared runtime contract crate
