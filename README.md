@@ -62,8 +62,10 @@ The current shared contract supports:
 - append of one or more events
 - query
 - conditional append with typed conflict failure
-- streams for future committed batches, including filtered streams via `EventQuery`
-- durable stream surface in the shared contract
+- `stream_all`
+- `stream_to`
+- `stream_all_durable`
+- `stream_to_durable`
 - event-type filtering
 - payload-predicate filtering
 - explicit separation of:
@@ -127,18 +129,18 @@ These are the load-bearing behaviors implemented today.
 - mixed committed batches are delivered as one filtered batch when matches exist
 - delivery order follows committed global sequence order
 - failed conditional append delivers nothing
-- multiple subscribers can observe the same committed batches
-- `EventStream::unsubscribe()` stops future delivery for that subscriber
+- multiple stream handlers can observe the same committed batches
+- `EventStream::unsubscribe()` stops future delivery for that stream registration
 - handler failure does not roll back append success
 
 ### Durable Streams
 
 - `stream_all_durable(&DurableStream, handle)` resumes from a stored durable cursor, replays committed batches after it, then continues with future committed delivery
 - `stream_to_durable(&DurableStream, &EventQuery, handle)` does the same with query-defined filtering
-- replay begins strictly after the stored durable cursor
-- replay/live transition must not duplicate or skip committed batches
+- durable replay starts strictly after the stored cursor
+- replay/live transition has no duplicates or gaps
 - durable cursors must not advance past undelivered committed facts
-- Memory implements durable streams within the lifetime of one `MemoryStore` instance
+- Memory implements durable streams within one `MemoryStore` instance only
 - SQLite implements durable streams with persisted cursors and replay across restart
 - PostgreSQL implements durable streams with persisted cursors and replay across restart
 - shared reusable durable-stream conformance exists in `factstore-conformance`

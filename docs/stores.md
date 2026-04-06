@@ -16,7 +16,7 @@ It implements:
 
 - append
 - query
-- conditional append
+- append_if
 - `stream_all`
 - `stream_to`
 - `stream_all_durable`
@@ -42,7 +42,7 @@ It implements:
 
 - append
 - query
-- conditional append
+- append_if
 - `stream_all`
 - `stream_to`
 - `stream_all_durable`
@@ -71,7 +71,7 @@ It implements:
 
 - append
 - query
-- conditional append
+- append_if
 - `stream_all`
 - `stream_to`
 - `stream_all_durable`
@@ -93,11 +93,20 @@ Even though the mechanics differ, the intended observable behavior remains share
 - sequence allocation guarantees
 - explicit query result meanings
 - future committed stream behavior
+- durable replay/catch-up semantics
+- durable cursor safety
 
 ## Shared Durable-Stream Status
 
 Durable streams are implemented across all three stores.
 
-- Memory keeps durable stream state for the lifetime of one store instance
-- SQLite persists durable stream cursors and replay state across restart, with an explicit `append_batches` history boundary for older databases
-- PostgreSQL persists durable stream cursors and replay state across restart, with an explicit `append_batches` history boundary for older databases
+- Memory implements durable streams within one `MemoryStore` instance only
+- SQLite implements durable streams with persisted cursors and replay across restart
+- PostgreSQL implements durable streams with persisted cursors and replay across restart
+
+Shared reusable durable-stream conformance now exists across the stores.
+Remaining store-specific tests prove only store-local boundaries:
+
+- Memory durable state is instance-lifetime only
+- SQLite durable replay depends on persisted `append_batches` history and rejects older databases without it
+- PostgreSQL durable replay depends on persisted `append_batches` history and rejects older databases without it

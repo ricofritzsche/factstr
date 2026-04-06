@@ -76,9 +76,11 @@ The project must support:
 * appending events conditionally against a context version
 * global monotonically increasing sequence numbers
 * ordered reads by ascending sequence number
-* post-commit live subscriptions as a first-class part of the shared contract direction
-* multiple live subscribers observing the same committed facts
-* later durable subscriber cursors and replay as separate work after first live subscription support
+* `stream_all`
+* `stream_to`
+* `stream_all_durable`
+* `stream_to_durable`
+* multiple stream handlers observing the same committed facts
 
 ### Semantic goals
 
@@ -90,12 +92,14 @@ The Rust implementation must preserve these core semantics from the TypeScript i
 * query results ordered by ascending sequence number
 * `minSequenceNumber` as incremental read cursor only
 * context-scoped optimistic locking
-* notifications after successful persistence
-* subscriber failure does not roll back the append
-* subscriber isolation from one another
-* live subscription delivery ordered by committed sequence order
+* post-commit stream delivery
+* stream handler failure does not roll back the append
+* stream handler isolation from one another
+* committed stream delivery ordered by committed sequence order
 * one committed append batch delivered as one committed batch unless the contract is explicitly changed later
-* live subscriptions as non-durable delivery, with durable replay and subscriber cursors treated separately
+* durable replay starts strictly after the stored cursor
+* replay/live transition has no duplicates or gaps
+* durable cursors do not advance past undelivered committed facts
 
 ### Operational goals
 
@@ -105,7 +109,7 @@ The persistent embedded implementation should support:
 * checksums
 * crash recovery
 * clear fsync modes
-* bounded subscriber behavior
+* bounded stream handler behavior
 * corruption handling rules
 * stable recovery after restart
 
@@ -158,26 +162,32 @@ The shared contract should express semantics, not implementation details.
 
 Core operations:
 
-* query
 * append
+* query
 * append against expected context version
-* subscribe live
+* `stream_all`
+* `stream_to`
+* `stream_all_durable`
+* `stream_to_durable`
 
 The contract should explicitly separate:
 
 * **last returned sequence**
 * **context version**
 
-This removes ambiguity and makes incremental reads and optimistic locking easier to reason about.
+This removes ambiguity and makes incremental reads, optimistic locking, and durable replay easier to reason about.
 
-The shared contract direction for subscriptions should make these observable semantics explicit:
+The shared stream contract should make these observable semantics explicit:
 
 * notifications happen only after successful persistence
 * delivery preserves committed sequence order
 * one committed append batch is delivered as one committed batch
-* multiple subscribers may observe the same committed batch
-* subscriber failure does not roll back a successful append
-* notifier internals remain store-local unless a true cross-store semantic requires a shared type
+* multiple stream handlers may observe the same committed batch
+* handler failure does not roll back a successful append
+* durable replay starts strictly after the stored cursor
+* replay/live transition has no duplicates or gaps
+* durable cursors do not advance past undelivered committed facts
+* stream internals remain store-local unless a true cross-store semantic requires a shared type
 
 ## Architectural Direction
 
@@ -189,12 +199,12 @@ Examples of major parts:
 * memory store
 * file or embedded store
 * postgres store
-* subscription support with store-local notifier internals
+* stream support with store-local delivery internals
 * optional transport adapters later
 
 The repository should not be structured around generic horizontal layers such as services, repositories, managers, helpers, or shared business logic buckets.
 
-The Rust project preserves the useful subscription and notifier semantics of the TypeScript eventstore, but it is not meant to copy the TypeScript runtime design or internal notifier structure.
+The Rust project preserves the useful stream delivery semantics of the TypeScript eventstore, but it is not meant to copy the TypeScript runtime design or internal delivery structure.
 
 ## Delivery Plan
 
@@ -206,7 +216,7 @@ Build the semantic foundation:
 * memory store
 * test suite proving preserved semantics
 * explicit query result model with context version
-* explicit subscription/notifier contract direction so future work does not lose post-commit delivery semantics
+* explicit stream contract so later work does not lose post-commit delivery semantics
 
 ### Phase 2
 
@@ -215,7 +225,7 @@ Build the first persistent embedded store:
 * append-only durable log
 * deterministic sequence allocation
 * indexed reads
-* live subscriptions
+* streams
 * recovery on restart
 
 ### Phase 3
@@ -226,12 +236,12 @@ Build PostgreSQL as a first-class store:
 * same semantic tests
 * same conditional append behavior
 * same observable read behavior
+* same durable-stream replay semantics
 
 ### Phase 4
 
 Add stronger operational features:
 
-* durable subscriber cursors
 * snapshots
 * faster recovery
 * metrics and tracing

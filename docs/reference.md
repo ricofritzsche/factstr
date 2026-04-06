@@ -72,7 +72,7 @@ Error returned by a stream handler.
 
 Stable durable stream identity.
 
-- names one persisted replay/catch-up cursor
+- names one durable stream cursor
 - is used by `stream_all_durable(...)` and `stream_to_durable(...)`
 
 ## `EventStream`
@@ -80,27 +80,30 @@ Stable durable stream identity.
 Active stream registration.
 
 - has a stable id
-- `unsubscribe()` stops future delivery for that subscriber
+- `unsubscribe()` stops future delivery for that stream registration
 - a batch already snapshotted for a committed append may still be delivered
 
 ## `EventStore`
 
 Shared runtime contract across store implementations.
 
-- `query`
 - `append`
+- `query`
 - `append_if`
 - `stream_all`
 - `stream_to`
 - `stream_all_durable`
 - `stream_to_durable`
 
-All stores must preserve the same observable append/query/conditional-append behavior.
+All stores must preserve the same observable append/query/append-if/stream behavior.
 
 - `stream_all(handle)` delivers all future committed batches to the handler
 - `stream_to(&EventQuery, handle)` delivers only future committed facts that match that query, preserving original committed order inside each delivered batch
 - `stream_all_durable(&DurableStream, handle)` resumes from the stored durable cursor, replays committed batches after it, and then continues with future committed batches
 - `stream_to_durable(&DurableStream, &EventQuery, handle)` does the same with query-defined filtering
+- durable replay starts strictly after the stored cursor
+- durable replay transitions into future committed delivery without duplicates or gaps
+- durable cursors do not advance past undelivered committed facts
 - the common use is still a feature-local read model that updates from committed batches
 
 ## `EventStoreError`

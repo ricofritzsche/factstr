@@ -47,3 +47,26 @@ What it proves:
 This is the main feature-slice story in the current repository: the feature owns its own query model, receives only relevant future facts, and updates that model from committed batches.
 
 These examples stay on the memory store because it is the fastest way to understand the current contract without database setup.
+
+## Bank Slices CLI
+
+Source:
+
+- [`examples/bank-slices-cli/src/main.rs`](https://github.com/ricofritzsche/factstore/blob/main/examples/bank-slices-cli/src/main.rs)
+- [`examples/bank-slices-cli/README.md`](https://github.com/ricofritzsche/factstore/blob/main/examples/bank-slices-cli/README.md)
+
+Run it:
+
+```bash
+cargo run --manifest-path examples/bank-slices-cli/Cargo.toml
+```
+
+What it proves:
+
+- SQLite-backed feature slices can stay independent without a central `Event` enum or aggregate
+- write-side slices remain explicit `*Command` types
+- read-side slices are explicit queries such as `BalanceQuery` and `MovementHistoryQuery`
+- the `fetch_balance` slice owns a real `stream_to(...)` registration and keeps its local read model current from committed batches
+- the `fetch_movement_history` slice reads facts directly and stays separate from `fetch_balance`
+
+This is the production-like example for the current repository: persisted facts in SQLite, local write-side rule checks, and a real stream-driven read model without introducing a shared domain layer.

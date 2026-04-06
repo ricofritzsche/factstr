@@ -11,13 +11,13 @@ Rust
 Memory · SQLite · PostgreSQL
 
 **Implemented now**  
-Append · Query · Conditional append · Streams
+Append · Query · Conditional append · Streams · Durable streams
 
 **Documentation**  
 GitHub Pages docs
 
-**Planned next**  
-Cross-store durable streams
+**Shared conformance**  
+Cross-store durable-stream conformance
 
 **License**  
 Apache-2.0 / MIT
