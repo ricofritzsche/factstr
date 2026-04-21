@@ -1,6 +1,6 @@
 # FACTSTR
 
-[FACTSTR](https://factstr.ricofritzsche.me) (pronounced: factstr) is a Rust event store built around facts, query-defined consistency context, and multiple store implementations behind one shared contract.
+[FACTSTR](https://factstr.ricofritzsche.me) (pronounced: factstore) is a Rust event store built around facts, query-defined consistency context, and multiple store implementations behind one shared contract.
 
 ## Documentation
 
