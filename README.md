@@ -222,3 +222,113 @@ Check the workspace:
 
 ```bash
 cargo check
+```
+
+Run the memory-store tests:
+
+```bash
+cargo test -p factstr-memory
+```
+
+Run the basic in-memory example:
+
+```bash
+cargo run --manifest-path examples/basic-memory/Cargo.toml
+```
+
+Run the feature-owned query-model example:
+
+```bash
+cargo run --manifest-path examples/account-projection/Cargo.toml
+```
+
+Run the PostgreSQL store tests:
+
+```bash
+DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres cargo test -p factstr-postgres
+```
+
+Run the full workspace test suite with PostgreSQL enabled:
+
+```bash
+DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres cargo test
+```
+
+## Using FACTSTR From Another Repository
+
+The current intended consumption path is a git dependency.
+
+Use the shared contract only:
+
+```toml
+[dependencies]
+factstr = { git = "https://github.com/ricofritzsche/factstr.git" }
+```
+
+Use the in-memory store:
+
+```toml
+[dependencies]
+factstr = { git = "https://github.com/ricofritzsche/factstr.git" }
+factstr-memory = { git = "https://github.com/ricofritzsche/factstr.git" }
+```
+
+Use the SQLite store:
+
+```toml
+[dependencies]
+factstr = { git = "https://github.com/ricofritzsche/factstr.git" }
+factstr-sqlite = { git = "https://github.com/ricofritzsche/factstr.git" }
+```
+
+Use the PostgreSQL store:
+
+```toml
+[dependencies]
+factstr = { git = "https://github.com/ricofritzsche/factstr.git" }
+factstr-postgres = { git = "https://github.com/ricofritzsche/factstr.git" }
+```
+
+## Workspace
+
+This repository currently contains:
+
+* `factstr`
+* `factstr-memory`
+* `factstr-sqlite`
+* `factstr-postgres`
+* `factstr-conformance`
+
+Crate roles:
+
+* `factstr`: shared runtime contract crate
+* `factstr-memory`: publishable in-memory runtime store
+* `factstr-sqlite`: publishable embedded SQLite runtime store
+* `factstr-postgres`: publishable PostgreSQL runtime store
+* `factstr-conformance`: internal reusable semantic test support
+
+## Current Scope Boundary
+
+Implemented now:
+
+* shared contract
+* memory store
+* sqlite store
+* postgres store
+* reusable store conformance tests
+* streams
+* durable streams in Memory, SQLite, and PostgreSQL
+
+Not implemented now:
+
+* file store
+* transport adapters
+* migrations framework
+* first-class query-model runtime above streams
+
+## License
+
+Licensed under either of:
+
+* MIT license ([LICENSE-MIT](LICENSE-MIT))
+* Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE))
