@@ -37,6 +37,7 @@ It is useful for:
 - local persistence without external infrastructure
 - feature-local durable replay/catch-up
 - validating the shared contract against an embedded store
+- reproducible local verification with a real database file
 
 It implements:
 
@@ -54,8 +55,9 @@ Operationally, it differs from the other stores by:
 - replaying committed batches from stored cursors before switching to future committed delivery
 - bounding durable replay correctness on persisted `append_batches` history
 
-Operationally, it persists committed events and durable stream cursors across process restarts.
-Durable replay still depends on persisted `append_batches` history, so older databases created before that history existed are rejected for durable replay instead of being backfilled automatically.
+Operationally, it persists committed events and durable stream cursors across process restarts. Durable replay still depends on persisted `append_batches` history, so older databases created before that history existed are rejected for durable replay instead of being backfilled automatically.
+
+For guidance on when SQLite is a good fit and when it is not, see [SQLite Store: What It Is For, and When Not to Use It](docs/stores/sqlite.md).
 
 ## PostgreSQL Store
 

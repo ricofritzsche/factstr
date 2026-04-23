@@ -6,12 +6,13 @@ It is meant to be easy to start with: append the first fact, read the relevant f
 
 ## Links
 
-- Website: [factstr.com](https://factstr.com)
-- Local docs entry page: [`docs/index.md`](docs/index.md)
-- Getting started: [`docs/getting-started.md`](docs/getting-started.md)
-- Streams: [`docs/streams.md`](docs/streams.md)
-- Stores: [`docs/stores.md`](docs/stores.md)
-- Reference: [`docs/reference.md`](docs/reference.md)
+- Website: https://factstr.com
+- Local docs entry page: docs/index.md
+- Getting started: docs/getting-started.md
+- Streams: docs/streams.md
+- Stores: docs/stores.md
+- SQLite store guidance: docs/stores/sqlite.md
+- Reference: docs/reference.md
 
 ## Why FACTSTR
 
@@ -93,7 +94,7 @@ Durable streams in memory are limited to the lifetime of one `MemoryStore` insta
 
 ### `factstr-sqlite`
 
-The SQLite store is the embedded persistent implementation.
+The SQLite store is the embedded persistent implementation. For guidance on when SQLite is the right store and when it is not, see [docs/stores/sqlite.md](docs/stores/sqlite.md).
 
 Use it for:
 
