@@ -1,45 +1,46 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const workspaceRoot = new URL('../', import.meta.url);
+const workspaceRoot = fileURLToPath(new URL('../', import.meta.url));
 
 const entries = [
   {
     label: 'factstr-node/package.json',
-    path: join(filePath(workspaceRoot), 'factstr-node', 'package.json'),
-    version: readPackageJsonVersion(join(filePath(workspaceRoot), 'factstr-node', 'package.json')),
+    path: join(workspaceRoot, 'factstr-node', 'package.json'),
+    version: readPackageJsonVersion(join(workspaceRoot, 'factstr-node', 'package.json')),
   },
   {
     label: 'factstr-node/Cargo.toml',
-    path: join(filePath(workspaceRoot), 'factstr-node', 'Cargo.toml'),
-    version: readCargoTomlVersion(join(filePath(workspaceRoot), 'factstr-node', 'Cargo.toml')),
+    path: join(workspaceRoot, 'factstr-node', 'Cargo.toml'),
+    version: readCargoTomlVersion(join(workspaceRoot, 'factstr-node', 'Cargo.toml')),
   },
   {
     label: 'factstr-node/npm/darwin-arm64/package.json',
-    path: join(filePath(workspaceRoot), 'factstr-node', 'npm', 'darwin-arm64', 'package.json'),
+    path: join(workspaceRoot, 'factstr-node', 'npm', 'darwin-arm64', 'package.json'),
     version: readPackageJsonVersion(
-      join(filePath(workspaceRoot), 'factstr-node', 'npm', 'darwin-arm64', 'package.json'),
+      join(workspaceRoot, 'factstr-node', 'npm', 'darwin-arm64', 'package.json'),
     ),
   },
   {
     label: 'factstr-node/npm/darwin-x64/package.json',
-    path: join(filePath(workspaceRoot), 'factstr-node', 'npm', 'darwin-x64', 'package.json'),
+    path: join(workspaceRoot, 'factstr-node', 'npm', 'darwin-x64', 'package.json'),
     version: readPackageJsonVersion(
-      join(filePath(workspaceRoot), 'factstr-node', 'npm', 'darwin-x64', 'package.json'),
+      join(workspaceRoot, 'factstr-node', 'npm', 'darwin-x64', 'package.json'),
     ),
   },
   {
     label: 'factstr-node/npm/linux-x64-gnu/package.json',
-    path: join(filePath(workspaceRoot), 'factstr-node', 'npm', 'linux-x64-gnu', 'package.json'),
+    path: join(workspaceRoot, 'factstr-node', 'npm', 'linux-x64-gnu', 'package.json'),
     version: readPackageJsonVersion(
-      join(filePath(workspaceRoot), 'factstr-node', 'npm', 'linux-x64-gnu', 'package.json'),
+      join(workspaceRoot, 'factstr-node', 'npm', 'linux-x64-gnu', 'package.json'),
     ),
   },
   {
     label: 'factstr-node/npm/win32-x64-msvc/package.json',
-    path: join(filePath(workspaceRoot), 'factstr-node', 'npm', 'win32-x64-msvc', 'package.json'),
+    path: join(workspaceRoot, 'factstr-node', 'npm', 'win32-x64-msvc', 'package.json'),
     version: readPackageJsonVersion(
-      join(filePath(workspaceRoot), 'factstr-node', 'npm', 'win32-x64-msvc', 'package.json'),
+      join(workspaceRoot, 'factstr-node', 'npm', 'win32-x64-msvc', 'package.json'),
     ),
   },
 ];
@@ -56,10 +57,6 @@ if (mismatches.length > 0) {
 }
 
 console.log(`factstr-node version sync ok: ${expectedVersion}`);
-
-function filePath(url) {
-  return url.pathname.startsWith('/') ? decodeURIComponent(url.pathname) : url.pathname;
-}
 
 function readPackageJsonVersion(path) {
   return JSON.parse(readFileSync(path, 'utf8')).version;
