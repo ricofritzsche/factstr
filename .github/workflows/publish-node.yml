@@ -33,15 +33,12 @@ jobs:
       - name: Compare local and registry versions
         id: compare
         run: |
-          remote_json="$(npm view '@factstr/factstr-node' version --json 2>/dev/null || echo 'null')"
-          export REMOTE_JSON="$remote_json"
+          remote_version="$(npm view '@factstr/factstr-node' version 2>/dev/null || true)"
+          export REMOTE_VERSION="$(printf '%s' "$remote_version" | tr -d '\r' | xargs)"
           node <<'EOF'
           const fs = require('node:fs');
           const localVersion = require('./factstr-node/package.json').version;
-          const remoteRaw = JSON.parse(process.env.REMOTE_JSON);
-          const registryVersion = Array.isArray(remoteRaw)
-            ? remoteRaw.at(-1)
-            : remoteRaw;
+          const registryVersion = process.env.REMOTE_VERSION || null;
           const shouldPublish = registryVersion !== localVersion;
           const output = process.env.GITHUB_OUTPUT;
           fs.appendFileSync(output, `local_version=${localVersion}\n`);
@@ -107,15 +104,12 @@ jobs:
         working-directory: factstr-node/npm/${{ matrix.package-directory }}
         shell: bash
         run: |
-          remote_json="$(npm view '${{ matrix.package-name }}' version --json 2>/dev/null || echo 'null')"
-          export REMOTE_JSON="$remote_json"
+          remote_version="$(npm view '${{ matrix.package-name }}' version 2>/dev/null || true)"
+          export REMOTE_VERSION="$(printf '%s' "$remote_version" | tr -d '\r' | xargs)"
           node <<'EOF'
           const fs = require('node:fs');
           const localVersion = require('./package.json').version;
-          const remoteRaw = JSON.parse(process.env.REMOTE_JSON);
-          const registryVersion = Array.isArray(remoteRaw)
-            ? remoteRaw.at(-1)
-            : remoteRaw;
+          const registryVersion = process.env.REMOTE_VERSION || null;
           const shouldPublish = registryVersion !== localVersion;
           const output = process.env.GITHUB_OUTPUT;
           fs.appendFileSync(output, `local_version=${localVersion}\n`);
@@ -166,15 +160,12 @@ jobs:
       - name: Confirm main package still needs publish
         id: compare
         run: |
-          remote_json="$(npm view '@factstr/factstr-node' version --json 2>/dev/null || echo 'null')"
-          export REMOTE_JSON="$remote_json"
+          remote_version="$(npm view '@factstr/factstr-node' version 2>/dev/null || true)"
+          export REMOTE_VERSION="$(printf '%s' "$remote_version" | tr -d '\r' | xargs)"
           node <<'EOF'
           const fs = require('node:fs');
           const localVersion = require('./factstr-node/package.json').version;
-          const remoteRaw = JSON.parse(process.env.REMOTE_JSON);
-          const registryVersion = Array.isArray(remoteRaw)
-            ? remoteRaw.at(-1)
-            : remoteRaw;
+          const registryVersion = process.env.REMOTE_VERSION || null;
           const shouldPublish = registryVersion !== localVersion;
           const output = process.env.GITHUB_OUTPUT;
           fs.appendFileSync(output, `should_publish=${shouldPublish}\n`);
