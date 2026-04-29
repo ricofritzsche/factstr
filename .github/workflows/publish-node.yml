@@ -92,9 +92,13 @@ jobs:
           npm --version
 
       - name: Enable npm bootstrap token when configured
-        if: ${{ secrets.NPM_TOKEN != '' }}
         shell: bash
-        run: echo "NODE_AUTH_TOKEN=${{ secrets.NPM_TOKEN }}" >> "$GITHUB_ENV"
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -n "$NPM_TOKEN" ]; then
+            echo "NODE_AUTH_TOKEN=$NPM_TOKEN" >> "$GITHUB_ENV"
+          fi
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -160,9 +164,13 @@ jobs:
           npm --version
 
       - name: Enable npm bootstrap token when configured
-        if: ${{ secrets.NPM_TOKEN != '' }}
         shell: bash
-        run: echo "NODE_AUTH_TOKEN=${{ secrets.NPM_TOKEN }}" >> "$GITHUB_ENV"
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -n "$NPM_TOKEN" ]; then
+            echo "NODE_AUTH_TOKEN=$NPM_TOKEN" >> "$GITHUB_ENV"
+          fi
 
       - name: Check factstr-node version sync
         run: node scripts/check-node-version-sync.mjs
