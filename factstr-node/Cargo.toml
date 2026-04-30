@@ -1,13 +1,13 @@
 [package]
 name = "factstr-node"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 rust-version = "1.85"
 publish = false
 description = "Node language adapter for factstr built on the explicit interop DTO boundary."
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/ricofritzsche/factstr.git"
-homepage = "https://factstr.ricofritzsche.me"
+homepage = "https://factstr.com"
 readme = "../README.md"
 keywords = ["eventstore", "node", "napi", "interop", "facts"]
 categories = ["api-bindings"]

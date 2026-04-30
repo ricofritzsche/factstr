@@ -1,10 +1,10 @@
 {
   "name": "@factstr/factstr-node-darwin-x64",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Darwin x64 prebuilt binary package for factstr-node.",
   "license": "MIT OR Apache-2.0",
   "repository": "https://github.com/ricofritzsche/factstr.git",
-  "homepage": "https://factstr.ricofritzsche.me",
+  "homepage": "https://factstr.com",
   "main": "factstr-node.darwin-x64.node",
   "files": [
     "README.md",

@@ -14,9 +14,7 @@ jobs:
     runs-on: ubuntu-24.04
     if: ${{ github.repository_owner == 'ricofritzsche' }}
     outputs:
-      local_version: ${{ steps.compare.outputs.local_version }}
-      registry_version: ${{ steps.compare.outputs.registry_version }}
-      should_publish: ${{ steps.compare.outputs.should_publish }}
+      should_publish_any: ${{ steps.compare.outputs.should_publish_any }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -33,23 +31,56 @@ jobs:
       - name: Compare local and registry versions
         id: compare
         run: |
-          remote_version="$(npm view '@factstr/factstr-node' version 2>/dev/null || true)"
-          export REMOTE_VERSION="$(printf '%s' "$remote_version" | tr -d '\r' | xargs)"
           node <<'EOF'
           const fs = require('node:fs');
-          const localVersion = require('./factstr-node/package.json').version;
-          const registryVersion = process.env.REMOTE_VERSION || null;
-          const shouldPublish = registryVersion !== localVersion;
+          const { execFileSync } = require('node:child_process');
+          const packages = [
+            {
+              path: './factstr-node/package.json',
+              name: '@factstr/factstr-node',
+            },
+            {
+              path: './factstr-node/npm/darwin-arm64/package.json',
+              name: '@factstr/factstr-node-darwin-arm64',
+            },
+            {
+              path: './factstr-node/npm/darwin-x64/package.json',
+              name: '@factstr/factstr-node-darwin-x64',
+            },
+            {
+              path: './factstr-node/npm/linux-x64-gnu/package.json',
+              name: '@factstr/factstr-node-linux-x64-gnu',
+            },
+            {
+              path: './factstr-node/npm/win32-x64-msvc/package.json',
+              name: '@factstr/factstr-node-win32-x64-msvc',
+            },
+          ];
+
+          const shouldPublishAny = packages.some((pkg) => {
+            const localVersion = require(pkg.path).version;
+            let registryVersion = null;
+
+            try {
+              registryVersion = execFileSync('npm', ['view', pkg.name, 'version'], {
+                encoding: 'utf8',
+                stdio: ['ignore', 'pipe', 'ignore'],
+              }).trim() || null;
+            } catch {
+              registryVersion = null;
+            }
+
+            return registryVersion !== localVersion;
+          });
+
           const output = process.env.GITHUB_OUTPUT;
-          fs.appendFileSync(output, `local_version=${localVersion}\n`);
-          fs.appendFileSync(output, `registry_version=${registryVersion ?? 'none'}\n`);
-          fs.appendFileSync(output, `should_publish=${shouldPublish}\n`);
+          fs.appendFileSync(output, `should_publish_any=${shouldPublishAny}\n`);
           EOF
 
   publish-node-prebuilt:
     name: Publish factstr-node prebuilt package
     needs: detect-node-release
-    if: ${{ needs.detect-node-release.outputs.should_publish == 'true' }}
+    if: ${{ needs.detect-node-release.outputs.should_publish_any == 'true' }}
     runs-on: ${{ matrix.runner }}
     environment: release
     permissions:
@@ -141,7 +172,7 @@ jobs:
     needs:
       - detect-node-release
       - publish-node-prebuilt
-    if: ${{ needs.detect-node-release.outputs.should_publish == 'true' }}
+    if: ${{ needs.detect-node-release.outputs.should_publish_any == 'true' }}
     runs-on: ubuntu-24.04
     environment: release
     permissions:
