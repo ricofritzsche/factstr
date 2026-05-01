@@ -1,12 +1,12 @@
 [package]
 name = "factstr-sqlite"
-version = "0.1.0"
+version = "0.2.1"
 edition = "2024"
 rust-version = "1.85"
 description = "SQLite bootstrap crate for embedded FACTSTR persistence."
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/ricofritzsche/factstr.git"
-homepage = "https://factstr.ricofritzsche.me"
+homepage = "https://factstr.com"
 readme = "../README.md"
 keywords = ["eventstore", "eventsourcing", "sqlite", "embedded", "facts"]
 categories = ["database-implementations"]
@@ -15,9 +15,10 @@ categories = ["database-implementations"]
 path = "src/lib.rs"
 
 [dependencies]
-factstr = { version = "0.1.0", path = "../factstr" }
+factstr = { version = "0.2.1", path = "../factstr" }
 serde_json = "1"
 sqlx = { version = "0.8", features = ["sqlite", "runtime-tokio-rustls"] }
+time = { version = "0.3", features = ["formatting", "parsing"] }
 tokio = { version = "1", features = ["rt"] }
 
 [dev-dependencies]

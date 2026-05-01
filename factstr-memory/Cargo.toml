@@ -1,12 +1,12 @@
 [package]
 name = "factstr-memory"
-version = "0.1.0"
+version = "0.2.1"
 edition = "2024"
 rust-version = "1.85"
 description = "In-memory factstr implementation that preserves the shared append, query, and conditional-append contract."
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/ricofritzsche/factstr.git"
-homepage = "https://factstr.ricofritzsche.me"
+homepage = "https://factstr.com"
 readme = "../README.md"
 keywords = ["eventstore", "eventsourcing", "memory", "facts", "testing"]
 categories = ["database-implementations"]
@@ -15,8 +15,9 @@ categories = ["database-implementations"]
 path = "src/lib.rs"
 
 [dependencies]
-factstr = { version = "0.1.0", path = "../factstr" }
+factstr = { version = "0.2.1", path = "../factstr" }
 serde_json = "1"
+time = { version = "0.3", features = ["formatting"] }
 
 [dev-dependencies]
 factstr-conformance = { path = "../factstr-conformance" }

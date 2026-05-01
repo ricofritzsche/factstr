@@ -14,6 +14,7 @@ use sqlx::{
     PgPool, Postgres, QueryBuilder, Row, Transaction,
     postgres::{PgPoolOptions, PgRow},
 };
+use time::OffsetDateTime;
 use tokio::runtime::Builder;
 
 use crate::query_match::matches_query;
@@ -846,7 +847,7 @@ async fn query_with_pool(
     let current_context_version = current_context_version(pool, event_query).await?;
 
     let mut query_builder: QueryBuilder<'_, Postgres> =
-        QueryBuilder::new("SELECT sequence_number, event_type, payload FROM events");
+        QueryBuilder::new("SELECT sequence_number, occurred_at, event_type, payload FROM events");
     push_query_conditions(&mut query_builder, event_query, true);
     query_builder.push(" ORDER BY sequence_number ASC");
 
@@ -977,6 +978,7 @@ async fn append_records(
         .enumerate()
         .map(|(offset, new_event)| EventRecord {
             sequence_number: first_sequence_number + offset as u64,
+            occurred_at: OffsetDateTime::now_utc(),
             event_type: new_event.event_type,
             payload: new_event.payload,
         })
@@ -984,10 +986,11 @@ async fn append_records(
 
     for event_record in &committed_event_records {
         sqlx::query(
-            "INSERT INTO events (sequence_number, event_type, payload)
-             VALUES ($1, $2, $3)",
+            "INSERT INTO events (sequence_number, occurred_at, event_type, payload)
+             VALUES ($1, $2, $3, $4)",
         )
         .bind(event_record.sequence_number as i64)
+        .bind(event_record.occurred_at)
         .bind(&event_record.event_type)
         .bind(&event_record.payload)
         .execute(transaction.as_mut())
@@ -1046,6 +1049,7 @@ async fn current_context_version_in_transaction(
 fn event_record_from_row(row: PgRow) -> EventRecord {
     EventRecord {
         sequence_number: row.get::<i64, _>("sequence_number") as u64,
+        occurred_at: row.get("occurred_at"),
         event_type: row.get("event_type"),
         payload: row.get("payload"),
     }

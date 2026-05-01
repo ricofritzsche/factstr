@@ -14,6 +14,7 @@ target
 **/.DS_Store
 
 # factstr-node local npm and package build artifacts
+.npm-cache/
 factstr-node/.npm-cache/
 factstr-node/*.tgz
 factstr-node/factstr-node.*.node

@@ -56,7 +56,7 @@ pub use query::{
     all_events_query_and_filtered_query_report_their_own_context_versions,
     current_context_version_for_payload_filtered_queries_uses_the_full_matching_context,
     min_sequence_number_does_not_narrow_current_context_version_for_payload_filtered_queries,
-    query_against_an_empty_store_returns_explicit_empty_result,
+    query_against_an_empty_store_returns_explicit_empty_result, query_records_include_occurred_at,
     query_returns_events_in_ascending_order,
     query_with_min_sequence_number_only_returns_events_after_that_sequence,
 };

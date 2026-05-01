@@ -15,6 +15,7 @@ export interface EventQuery {
 
 export interface EventRecord {
   sequence_number: bigint;
+  occurred_at: string;
   event_type: string;
   payload: unknown;
 }

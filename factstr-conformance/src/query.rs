@@ -30,6 +30,34 @@ where
     assert_eq!(query_result.current_context_version, Some(3));
 }
 
+pub fn query_records_include_occurred_at<S, F>(create_store: F)
+where
+    S: EventStore,
+    F: Fn() -> S,
+{
+    let store = create_store();
+
+    store
+        .append(vec![new_event(
+            "account-opened",
+            json!({ "accountId": "a1" }),
+        )])
+        .expect("append should succeed");
+
+    let query_result = store
+        .query(&EventQuery::all())
+        .expect("query should succeed");
+
+    assert_eq!(query_result.event_records.len(), 1);
+    assert_ne!(
+        query_result.event_records[0]
+            .occurred_at
+            .unix_timestamp_nanos(),
+        0,
+        "event record should carry a real occurred_at timestamp",
+    );
+}
+
 pub fn query_with_min_sequence_number_only_returns_events_after_that_sequence<S, F>(create_store: F)
 where
     S: EventStore,

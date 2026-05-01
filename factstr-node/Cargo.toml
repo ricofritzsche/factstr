@@ -1,6 +1,6 @@
 [package]
 name = "factstr-node"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2024"
 rust-version = "1.85"
 publish = false
@@ -17,9 +17,9 @@ crate-type = ["cdylib", "rlib"]
 path = "src/lib.rs"
 
 [dependencies]
-factstr = { version = "0.1.0", path = "../factstr" }
-factstr-interop = { version = "0.1.0", path = "../factstr-interop" }
-factstr-memory = { version = "0.1.0", path = "../factstr-memory" }
+factstr = { version = "0.2.1", path = "../factstr" }
+factstr-interop = { version = "0.2.1", path = "../factstr-interop" }
+factstr-memory = { version = "0.2.1", path = "../factstr-memory" }
 napi = { version = "2", default-features = false, features = ["dyn-symbols", "napi8", "serde-json"] }
 napi-derive = "2"
 serde_json = "1"

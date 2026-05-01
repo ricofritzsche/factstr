@@ -6,12 +6,14 @@ use factstr_interop::{
     InteropEventQuery, InteropEventRecord, InteropNewEvent, InteropQueryResult,
 };
 use serde_json::json;
+use time::OffsetDateTime;
 
 #[test]
 fn interop_query_result_preserves_returned_sequence_and_context_version_distinction() {
     let interop_query_result = InteropQueryResult {
         event_records: vec![InteropEventRecord {
             sequence_number: 7,
+            occurred_at: "2026-05-01T08:00:00Z".to_owned(),
             event_type: "account-opened".to_owned(),
             payload: json!({ "accountId": "a-1" }),
         }],
@@ -100,6 +102,8 @@ fn interop_query_result_round_trip_preserves_event_records() {
     let query_result = QueryResult {
         event_records: vec![EventRecord {
             sequence_number: 3,
+            occurred_at: OffsetDateTime::from_unix_timestamp(1)
+                .expect("unix timestamp should convert"),
             event_type: "account-opened".to_owned(),
             payload: json!({ "accountId": "a-1", "owner": "Rico" }),
         }],

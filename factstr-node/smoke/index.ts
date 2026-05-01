@@ -35,6 +35,8 @@ const queryResult = store.query(accountQuery);
 
 assert(queryResult.event_records.length === 1, 'expected one queried event');
 assert(queryResult.event_records[0].sequence_number === 1n, 'expected queried sequence number 1n');
+assert(typeof queryResult.event_records[0].occurred_at === 'string', 'expected occurred_at string');
+assert(queryResult.event_records[0].occurred_at.length > 0, 'expected non-empty occurred_at');
 assert(queryResult.last_returned_sequence_number === 1n, 'expected last returned sequence number 1n');
 assert(queryResult.current_context_version === 1n, 'expected current context version 1n');
 

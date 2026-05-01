@@ -9,6 +9,8 @@ use crate::sequence_number_value::{bigint_from_u64, option_bigint_from_u64};
 pub struct EventRecord {
     #[napi(js_name = "sequence_number")]
     pub sequence_number: BigInt,
+    #[napi(js_name = "occurred_at")]
+    pub occurred_at: String,
     #[napi(js_name = "event_type")]
     pub event_type: String,
     pub payload: Value,
@@ -18,6 +20,7 @@ impl From<factstr_interop::InteropEventRecord> for EventRecord {
     fn from(interop_event_record: factstr_interop::InteropEventRecord) -> Self {
         Self {
             sequence_number: bigint_from_u64(interop_event_record.sequence_number),
+            occurred_at: interop_event_record.occurred_at,
             event_type: interop_event_record.event_type,
             payload: interop_event_record.payload,
         }

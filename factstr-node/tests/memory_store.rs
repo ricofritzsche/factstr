@@ -62,6 +62,10 @@ fn query_returns_the_query_result_shape() {
         bigint_to_u64(&query_result.event_records[0].sequence_number),
         1
     );
+    assert!(
+        !query_result.event_records[0].occurred_at.is_empty(),
+        "expected occurred_at to be present",
+    );
     assert_eq!(query_result.event_records[0].event_type, "money-deposited");
 }
 

@@ -1,4 +1,4 @@
-use std::cell::{Cell, RefCell};
+    use std::cell::{Cell, RefCell};
 use std::sync::{
     Arc, Mutex,
     mpsc::{self, Receiver, Sender},
@@ -9,6 +9,7 @@ use factstr::{
     AppendResult, DurableStream, EventQuery, EventRecord, EventStore, EventStoreError, EventStream,
     HandleStream, NewEvent, QueryResult,
 };
+use time::OffsetDateTime;
 
 use crate::query_match::matches_query;
 use crate::stream_registry::{DeliveryOutcome, PendingDelivery, SubscriptionRegistry};
@@ -116,6 +117,7 @@ impl MemoryStore {
             .enumerate()
             .map(|(offset, new_event)| EventRecord {
                 sequence_number: first_sequence_number + offset as u64,
+                occurred_at: OffsetDateTime::now_utc(),
                 event_type: new_event.event_type,
                 payload: new_event.payload,
             })

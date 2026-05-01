@@ -7,6 +7,11 @@ fn query_returns_events_in_ascending_order() {
 }
 
 #[test]
+fn query_records_include_occurred_at() {
+    store_conformance::query_records_include_occurred_at(MemoryStore::new);
+}
+
+#[test]
 fn query_with_min_sequence_number_only_returns_events_after_that_sequence() {
     store_conformance::query_with_min_sequence_number_only_returns_events_after_that_sequence(
         MemoryStore::new,

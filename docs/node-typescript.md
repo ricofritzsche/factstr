@@ -55,6 +55,7 @@ const query: EventQuery = {
 
 const result = store.query(query);
 
+console.log(result.event_records[0]?.occurred_at);
 console.log(result.event_records[0]?.payload);
 console.log(result.last_returned_sequence_number);
 console.log(result.current_context_version);
@@ -64,6 +65,7 @@ This example keeps the current public package shape explicit:
 
 - events use `event_type` and `payload`
 - `query(...)` returns `event_records`
+- each `EventRecord` includes `occurred_at`
 - `last_returned_sequence_number` and `current_context_version` stay distinct
 
 ## Conditional Append Example
@@ -111,6 +113,8 @@ if (outcome.conflict) {
 ## BigInt
 
 Sequence and context values use `bigint` so Rust `u64` meanings stay lossless in TypeScript.
+
+`occurred_at` is exposed as an RFC 3339 string on each returned event record.
 
 ## Current Boundary
 

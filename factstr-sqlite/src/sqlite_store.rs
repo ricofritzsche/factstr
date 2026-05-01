@@ -15,6 +15,8 @@ use factstr::{
 use serde_json::Value;
 use sqlx::sqlite::SqliteRow;
 use sqlx::{QueryBuilder, Row, Sqlite, SqlitePool};
+use time::OffsetDateTime;
+use time::format_description::well_known::Rfc3339;
 use tokio::runtime::Builder;
 
 use crate::connection::open_pool;
@@ -637,6 +639,7 @@ async fn append_batch(
         .enumerate()
         .map(|(offset, new_event)| EventRecord {
             sequence_number: first_sequence_number + offset as u64,
+            occurred_at: OffsetDateTime::now_utc(),
             event_type: new_event.event_type,
             payload: new_event.payload,
         })
@@ -644,12 +647,17 @@ async fn append_batch(
 
     for event_record in &event_records {
         let payload = serde_json::to_string(&event_record.payload).map_err(json_backend_failure)?;
+        let occurred_at = event_record
+            .occurred_at
+            .format(&Rfc3339)
+            .expect("sqlite occurred_at should format as RFC3339");
 
         sqlx::query(
             "INSERT INTO events (sequence_number, occurred_at, event_type, payload)
-             VALUES (?1, STRFTIME('%Y-%m-%dT%H:%M:%fZ', 'now'), ?2, ?3)",
+             VALUES (?1, ?2, ?3, ?4)",
         )
         .bind(event_record.sequence_number as i64)
+        .bind(occurred_at)
         .bind(&event_record.event_type)
         .bind(payload)
         .execute(&mut *connection)
@@ -714,8 +722,9 @@ async fn fetch_candidate_rows(
     pool: &SqlitePool,
     candidate_event_types: Option<&[String]>,
 ) -> Result<Vec<SqliteRow>, EventStoreError> {
-    let mut query_builder =
-        QueryBuilder::<Sqlite>::new("SELECT sequence_number, event_type, payload FROM events");
+    let mut query_builder = QueryBuilder::<Sqlite>::new(
+        "SELECT sequence_number, occurred_at, event_type, payload FROM events",
+    );
 
     if let Some(candidate_event_types) = candidate_event_types {
         if candidate_event_types.is_empty() {
@@ -744,8 +753,9 @@ async fn fetch_candidate_rows_from_connection(
     connection: &mut sqlx::SqliteConnection,
     candidate_event_types: Option<&[String]>,
 ) -> Result<Vec<SqliteRow>, EventStoreError> {
-    let mut query_builder =
-        QueryBuilder::<Sqlite>::new("SELECT sequence_number, event_type, payload FROM events");
+    let mut query_builder = QueryBuilder::<Sqlite>::new(
+        "SELECT sequence_number, occurred_at, event_type, payload FROM events",
+    );
 
     if let Some(candidate_event_types) = candidate_event_types {
         if candidate_event_types.is_empty() {
@@ -808,6 +818,8 @@ fn row_to_event_record(row: SqliteRow) -> Result<EventRecord, EventStoreError> {
 
     Ok(EventRecord {
         sequence_number: row.get::<i64, _>("sequence_number") as u64,
+        occurred_at: OffsetDateTime::parse(&row.get::<String, _>("occurred_at"), &Rfc3339)
+            .map_err(time_backend_failure)?,
         event_type: row.get::<String, _>("event_type"),
         payload,
     })
@@ -834,6 +846,12 @@ fn sqlx_backend_failure(error: sqlx::Error) -> EventStoreError {
 }
 
 fn json_backend_failure(error: serde_json::Error) -> EventStoreError {
+    EventStoreError::BackendFailure {
+        message: error.to_string(),
+    }
+}
+
+fn time_backend_failure(error: time::error::Parse) -> EventStoreError {
     EventStoreError::BackendFailure {
         message: error.to_string(),
     }
@@ -1008,7 +1026,7 @@ async fn load_replay_batches(
         let first_sequence_number = batch_row.get::<i64, _>("first_sequence_number") as u64;
         let last_sequence_number = batch_row.get::<i64, _>("last_sequence_number") as u64;
         let event_rows = sqlx::query(
-            "SELECT sequence_number, event_type, payload
+            "SELECT sequence_number, occurred_at, event_type, payload
              FROM events
              WHERE sequence_number >= ?1 AND sequence_number <= ?2
              ORDER BY sequence_number ASC",

@@ -67,6 +67,7 @@ const query: EventQuery = {
 
 const result = store.query(query);
 
+console.log(result.event_records[0]?.occurred_at);
 console.log(result.event_records[0]?.payload);
 ```
 
@@ -115,6 +116,8 @@ if (outcome.conflict) {
 ## BigInt
 
 Sequence and context values are exposed as `bigint` so FACTSTR's Rust `u64` meanings stay lossless in TypeScript.
+
+`occurred_at` is exposed as an RFC 3339 string on each returned `EventRecord`.
 
 ## Docs and Source
 

@@ -15,8 +15,11 @@ Input event for `append` and `append_if`.
 Committed fact stored in the append-only log.
 
 - has a global `sequence_number`
+- carries `occurred_at` as the recorded occurrence time
 - keeps the committed `event_type`
 - keeps the committed `payload`
+
+`sequence_number` defines committed log order. `occurred_at` does not.
 
 ## `EventFilter`
 

@@ -23,6 +23,8 @@ It is internal support for language adapters in this repository, not the user-fa
 
 Rust releases are managed by `release-plz`.
 
+FACTSTR uses one unified public version line for its public artifacts. The current public version is `0.2.1`.
+
 - publishable crates: `factstr`, `factstr-memory`, `factstr-sqlite`, `factstr-postgres`
 - non-products on crates.io: `factstr-interop`, the Rust `factstr-node` crate, and `factstr-conformance`
 
@@ -31,9 +33,15 @@ The intended steady-state Rust path is GitHub Actions trusted publishing. Brand-
 The npm release lane publishes only `@factstr/factstr-node`.
 
 - `@factstr/factstr-node` is the public npm package
+- `@factstr/factstr-node` follows the same public release version as the Rust core crates
 - the prebuilt packages under `factstr-node/npm/*` exist only for native distribution support
 
-Node publishing is intended to run through GitHub Actions trusted publishing on GitHub-hosted runners, not from a developer laptop.
+Release automation stays split by lane:
+
+- Rust crates publish through the Rust release lane
+- `@factstr/factstr-node` publishes through the npm release lane
+
+The public version line is shared even though the publish lanes remain separate. Node publishing is intended to run through GitHub Actions trusted publishing on GitHub-hosted runners, not from a developer laptop.
 
 ## Links
 
@@ -192,6 +200,8 @@ These are the load-bearing behaviors implemented today.
 ### Query
 
 - returned events are ordered by ascending `sequence_number`
+- each returned `EventRecord` includes `occurred_at`
+- `occurred_at` is recorded event time, not the ordering key
 - `min_sequence_number` is an exclusive read cursor
 - `last_returned_sequence_number` describes only the returned rows
 - `current_context_version` describes the full matching context
