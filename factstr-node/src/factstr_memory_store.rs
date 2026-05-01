@@ -1,5 +1,5 @@
 use crate::{
-    AppendIfResult, InteropAppendResult, InteropEventQuery, InteropNewEvent, InteropQueryResult,
+    AppendIfResult, AppendResult, EventQuery, NewEvent, QueryResult,
     sequence_number_value::option_bigint_to_u64,
 };
 use factstr::{EventStore, EventStoreError};
@@ -30,10 +30,10 @@ impl FactstrMemoryStore {
     }
 
     #[napi]
-    pub fn append(&self, events: Vec<InteropNewEvent>) -> Result<InteropAppendResult> {
+    pub fn append(&self, events: Vec<NewEvent>) -> Result<AppendResult> {
         let interop_events = events
             .into_iter()
-            .map(InteropNewEvent::into_interop)
+            .map(NewEvent::into_interop)
             .collect::<Vec<_>>();
         let new_events = interop_events
             .into_iter()
@@ -48,7 +48,7 @@ impl FactstrMemoryStore {
     }
 
     #[napi]
-    pub fn query(&self, query: InteropEventQuery) -> Result<InteropQueryResult> {
+    pub fn query(&self, query: EventQuery) -> Result<QueryResult> {
         let interop_query = query.into_interop()?;
         let event_query = interop_query.into();
         let query_result = self
@@ -62,13 +62,13 @@ impl FactstrMemoryStore {
     #[napi(js_name = "appendIf")]
     pub fn append_if(
         &self,
-        events: Vec<InteropNewEvent>,
-        query: InteropEventQuery,
+        events: Vec<NewEvent>,
+        query: EventQuery,
         expected_context_version: Option<BigInt>,
     ) -> Result<AppendIfResult> {
         let interop_events = events
             .into_iter()
-            .map(InteropNewEvent::into_interop)
+            .map(NewEvent::into_interop)
             .collect::<Vec<_>>();
         let new_events = interop_events
             .into_iter()

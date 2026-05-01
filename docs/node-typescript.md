@@ -30,24 +30,30 @@ npm install @factstr/factstr-node
 ## First Example
 
 ```ts
-import { FactstrMemoryStore } from '@factstr/factstr-node';
+import {
+  type EventQuery,
+  type NewEvent,
+  FactstrMemoryStore,
+} from '@factstr/factstr-node';
 
 const store = new FactstrMemoryStore();
 
-store.append([
-  {
-    event_type: 'item-added',
-    payload: { sku: 'ABC-123', quantity: 1 },
-  },
-]);
+const event: NewEvent = {
+  event_type: 'item-added',
+  payload: { sku: 'ABC-123', quantity: 1 },
+};
 
-const result = store.query({
+store.append([event]);
+
+const query: EventQuery = {
   filters: [
     {
       event_types: ['item-added'],
     },
   ],
-});
+};
+
+const result = store.query(query);
 
 console.log(result.event_records[0]?.payload);
 console.log(result.last_returned_sequence_number);
@@ -63,11 +69,16 @@ This example keeps the current public package shape explicit:
 ## Conditional Append Example
 
 ```ts
-import { FactstrMemoryStore } from '@factstr/factstr-node';
+import {
+  type AppendIfResult,
+  type EventQuery,
+  type NewEvent,
+  FactstrMemoryStore,
+} from '@factstr/factstr-node';
 
 const store = new FactstrMemoryStore();
 
-const contextQuery = {
+const contextQuery: EventQuery = {
   filters: [
     {
       event_types: ['item-added'],
@@ -77,13 +88,13 @@ const contextQuery = {
 
 const context = store.query(contextQuery);
 
-const outcome = store.appendIf(
-  [
-    {
-      event_type: 'item-added',
-      payload: { sku: 'ABC-123', quantity: 1 },
-    },
-  ],
+const nextEvent: NewEvent = {
+  event_type: 'item-added',
+  payload: { sku: 'ABC-123', quantity: 1 },
+};
+
+const outcome: AppendIfResult = store.appendIf(
+  [nextEvent],
   contextQuery,
   context.current_context_version,
 );

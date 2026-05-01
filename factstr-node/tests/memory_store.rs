@@ -1,4 +1,4 @@
-use factstr_node::{FactstrMemoryStore, InteropEventFilter, InteropEventQuery, InteropNewEvent};
+use factstr_node::{EventFilter, EventQuery, FactstrMemoryStore, NewEvent};
 use napi::bindgen_prelude::BigInt;
 use serde_json::json;
 
@@ -14,11 +14,11 @@ fn option_bigint_to_u64(value: &Option<BigInt>) -> Option<u64> {
 }
 
 #[test]
-fn append_returns_the_interop_append_result_shape() {
+fn append_returns_the_append_result_shape() {
     let store = FactstrMemoryStore::new();
 
     let append_result = store
-        .append(vec![InteropNewEvent {
+        .append(vec![NewEvent {
             event_type: "account-opened".to_owned(),
             payload: json!({ "accountId": "a-1" }),
         }])
@@ -30,18 +30,18 @@ fn append_returns_the_interop_append_result_shape() {
 }
 
 #[test]
-fn query_returns_the_interop_query_result_shape() {
+fn query_returns_the_query_result_shape() {
     let store = FactstrMemoryStore::new();
     store
-        .append(vec![InteropNewEvent {
+        .append(vec![NewEvent {
             event_type: "money-deposited".to_owned(),
             payload: json!({ "accountId": "a-1", "amount": 25 }),
         }])
         .expect("append should succeed");
 
     let query_result = store
-        .query(InteropEventQuery {
-            filters: Some(vec![InteropEventFilter {
+        .query(EventQuery {
+            filters: Some(vec![EventFilter {
                 event_types: Some(vec!["money-deposited".to_owned()]),
                 payload_predicates: Some(vec![json!({ "accountId": "a-1" })]),
             }]),
@@ -69,7 +69,7 @@ fn query_returns_the_interop_query_result_shape() {
 fn append_if_returns_an_explicit_conflict_shape() {
     let store = FactstrMemoryStore::new();
     store
-        .append(vec![InteropNewEvent {
+        .append(vec![NewEvent {
             event_type: "account-opened".to_owned(),
             payload: json!({ "accountId": "a-1" }),
         }])
@@ -77,12 +77,12 @@ fn append_if_returns_an_explicit_conflict_shape() {
 
     let append_if_result = store
         .append_if(
-            vec![InteropNewEvent {
+            vec![NewEvent {
                 event_type: "money-deposited".to_owned(),
                 payload: json!({ "accountId": "a-1", "amount": 25 }),
             }],
-            InteropEventQuery {
-                filters: Some(vec![InteropEventFilter {
+            EventQuery {
+                filters: Some(vec![EventFilter {
                     event_types: Some(vec!["account-opened".to_owned()]),
                     payload_predicates: None,
                 }]),

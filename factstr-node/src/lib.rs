@@ -6,7 +6,5 @@ mod sequence_number_value;
 
 pub use append_if_outcome::AppendIfResult;
 pub use factstr_memory_store::FactstrMemoryStore;
-pub use node_request::{InteropEventFilter, InteropEventQuery, InteropNewEvent};
-pub use node_result::{
-    InteropAppendResult, InteropConditionalAppendConflict, InteropEventRecord, InteropQueryResult,
-};
+pub use node_request::{EventFilter, EventQuery, NewEvent};
+pub use node_result::{AppendResult, ConditionalAppendConflict, EventRecord, QueryResult};

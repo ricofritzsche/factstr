@@ -1,6 +1,6 @@
 {
   "name": "@factstr/factstr-node",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "description": "TypeScript and Node package for the FACTSTR memory-backed adapter.",
   "main": "index.js",
   "types": "index.d.ts",
@@ -11,10 +11,10 @@
     "index.d.ts"
   ],
   "optionalDependencies": {
-    "@factstr/factstr-node-darwin-arm64": "0.1.3",
-    "@factstr/factstr-node-darwin-x64": "0.1.3",
-    "@factstr/factstr-node-linux-x64-gnu": "0.1.3",
-    "@factstr/factstr-node-win32-x64-msvc": "0.1.3"
+    "@factstr/factstr-node-darwin-arm64": "0.2.0",
+    "@factstr/factstr-node-darwin-x64": "0.2.0",
+    "@factstr/factstr-node-linux-x64-gnu": "0.2.0",
+    "@factstr/factstr-node-win32-x64-msvc": "0.2.0"
   },
   "scripts": {
     "prepare:readme": "node ./scripts/prepare-readme.mjs",

@@ -1,4 +1,9 @@
-import { FactstrMemoryStore } from '@factstr/factstr-node';
+import {
+  type AppendIfResult,
+  type EventQuery,
+  type NewEvent,
+  FactstrMemoryStore,
+} from '@factstr/factstr-node';
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) {
@@ -8,47 +13,44 @@ function assert(condition: unknown, message: string): asserts condition {
 
 const store = new FactstrMemoryStore();
 
+const openedAccount: NewEvent = {
+  event_type: 'account-opened',
+  payload: { accountId: 'a-1', owner: 'Rico' },
+};
+
 const appendResult = store.append([
-  {
-    event_type: 'account-opened',
-    payload: { accountId: 'a-1', owner: 'Rico' },
-  },
+  openedAccount,
 ]);
 
-assert(appendResult.first_sequence_number === 1n, 'expected first sequence number 1n');
-assert(appendResult.last_sequence_number === 1n, 'expected last sequence number 1n');
-assert(appendResult.committed_count === 1n, 'expected committed count 1n');
-
-const queryResult = store.query({
+const accountQuery: EventQuery = {
   filters: [
     {
       event_types: ['account-opened'],
       payload_predicates: [{ accountId: 'a-1' }],
     },
   ],
-});
+};
+
+const queryResult = store.query(accountQuery);
 
 assert(queryResult.event_records.length === 1, 'expected one queried event');
 assert(queryResult.event_records[0].sequence_number === 1n, 'expected queried sequence number 1n');
 assert(queryResult.last_returned_sequence_number === 1n, 'expected last returned sequence number 1n');
 assert(queryResult.current_context_version === 1n, 'expected current context version 1n');
 
-const conflictResult = store.appendIf(
-  [
-    {
-      event_type: 'money-deposited',
-      payload: { accountId: 'a-1', amount: 25 },
-    },
-  ],
-  {
-    filters: [
-      {
-        event_types: ['account-opened'],
-      },
-    ],
-  },
+const depositEvent: NewEvent = {
+  event_type: 'money-deposited',
+  payload: { accountId: 'a-1', amount: 25 },
+};
+
+const conflictResult: AppendIfResult = store.appendIf(
+  [depositEvent],
+  accountQuery,
   0n,
 );
+assert(appendResult.first_sequence_number === 1n, 'expected first sequence number 1n');
+assert(appendResult.last_sequence_number === 1n, 'expected last sequence number 1n');
+assert(appendResult.committed_count === 1n, 'expected committed count 1n');
 
 assert(conflictResult.append_result == null, 'expected no append result on conflict');
 assert(conflictResult.conflict != null, 'expected explicit conflict result');

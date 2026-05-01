@@ -1,53 +1,53 @@
-export interface InteropNewEvent {
+export interface NewEvent {
   event_type: string;
   payload: unknown;
 }
 
-export interface InteropEventFilter {
+export interface EventFilter {
   event_types?: string[] | null;
   payload_predicates?: unknown[] | null;
 }
 
-export interface InteropEventQuery {
-  filters?: InteropEventFilter[] | null;
+export interface EventQuery {
+  filters?: EventFilter[] | null;
   min_sequence_number?: bigint | null;
 }
 
-export interface InteropEventRecord {
+export interface EventRecord {
   sequence_number: bigint;
   event_type: string;
   payload: unknown;
 }
 
-export interface InteropQueryResult {
-  event_records: InteropEventRecord[];
+export interface QueryResult {
+  event_records: EventRecord[];
   last_returned_sequence_number?: bigint | null;
   current_context_version?: bigint | null;
 }
 
-export interface InteropAppendResult {
+export interface AppendResult {
   first_sequence_number: bigint;
   last_sequence_number: bigint;
   committed_count: bigint;
 }
 
-export interface InteropConditionalAppendConflict {
+export interface ConditionalAppendConflict {
   expected_context_version?: bigint | null;
   actual_context_version?: bigint | null;
 }
 
 export interface AppendIfResult {
-  append_result?: InteropAppendResult | null;
-  conflict?: InteropConditionalAppendConflict | null;
+  append_result?: AppendResult | null;
+  conflict?: ConditionalAppendConflict | null;
 }
 
 export declare class FactstrMemoryStore {
   constructor();
-  append(events: InteropNewEvent[]): InteropAppendResult;
-  query(query: InteropEventQuery): InteropQueryResult;
+  append(events: NewEvent[]): AppendResult;
+  query(query: EventQuery): QueryResult;
   appendIf(
-    events: InteropNewEvent[],
-    query: InteropEventQuery,
+    events: NewEvent[],
+    query: EventQuery,
     expectedContextVersion?: bigint | null,
   ): AppendIfResult;
 }

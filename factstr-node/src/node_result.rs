@@ -6,7 +6,7 @@ use crate::sequence_number_value::{bigint_from_u64, option_bigint_from_u64};
 
 #[napi(object)]
 #[derive(Clone, Debug)]
-pub struct InteropEventRecord {
+pub struct EventRecord {
     #[napi(js_name = "sequence_number")]
     pub sequence_number: BigInt,
     #[napi(js_name = "event_type")]
@@ -14,7 +14,7 @@ pub struct InteropEventRecord {
     pub payload: Value,
 }
 
-impl From<factstr_interop::InteropEventRecord> for InteropEventRecord {
+impl From<factstr_interop::InteropEventRecord> for EventRecord {
     fn from(interop_event_record: factstr_interop::InteropEventRecord) -> Self {
         Self {
             sequence_number: bigint_from_u64(interop_event_record.sequence_number),
@@ -26,16 +26,16 @@ impl From<factstr_interop::InteropEventRecord> for InteropEventRecord {
 
 #[napi(object)]
 #[derive(Clone, Debug, Default)]
-pub struct InteropQueryResult {
+pub struct QueryResult {
     #[napi(js_name = "event_records")]
-    pub event_records: Vec<InteropEventRecord>,
+    pub event_records: Vec<EventRecord>,
     #[napi(js_name = "last_returned_sequence_number")]
     pub last_returned_sequence_number: Option<BigInt>,
     #[napi(js_name = "current_context_version")]
     pub current_context_version: Option<BigInt>,
 }
 
-impl From<factstr_interop::InteropQueryResult> for InteropQueryResult {
+impl From<factstr_interop::InteropQueryResult> for QueryResult {
     fn from(interop_query_result: factstr_interop::InteropQueryResult) -> Self {
         Self {
             event_records: interop_query_result
@@ -55,7 +55,7 @@ impl From<factstr_interop::InteropQueryResult> for InteropQueryResult {
 
 #[napi(object)]
 #[derive(Clone, Debug)]
-pub struct InteropAppendResult {
+pub struct AppendResult {
     #[napi(js_name = "first_sequence_number")]
     pub first_sequence_number: BigInt,
     #[napi(js_name = "last_sequence_number")]
@@ -64,7 +64,7 @@ pub struct InteropAppendResult {
     pub committed_count: BigInt,
 }
 
-impl From<factstr_interop::InteropAppendResult> for InteropAppendResult {
+impl From<factstr_interop::InteropAppendResult> for AppendResult {
     fn from(interop_append_result: factstr_interop::InteropAppendResult) -> Self {
         Self {
             first_sequence_number: bigint_from_u64(interop_append_result.first_sequence_number),
@@ -76,14 +76,14 @@ impl From<factstr_interop::InteropAppendResult> for InteropAppendResult {
 
 #[napi(object)]
 #[derive(Clone, Debug)]
-pub struct InteropConditionalAppendConflict {
+pub struct ConditionalAppendConflict {
     #[napi(js_name = "expected_context_version")]
     pub expected_context_version: Option<BigInt>,
     #[napi(js_name = "actual_context_version")]
     pub actual_context_version: Option<BigInt>,
 }
 
-impl From<factstr_interop::InteropConditionalAppendConflict> for InteropConditionalAppendConflict {
+impl From<factstr_interop::InteropConditionalAppendConflict> for ConditionalAppendConflict {
     fn from(interop_conflict: factstr_interop::InteropConditionalAppendConflict) -> Self {
         Self {
             expected_context_version: option_bigint_from_u64(
